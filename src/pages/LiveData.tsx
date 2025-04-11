@@ -4,7 +4,7 @@ import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Database, RefreshCw, Table } from 'lucide-react';
+import { ArrowLeft, Database, RefreshCw, Table, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Table as TableComponent,
@@ -69,6 +69,15 @@ const LiveData: React.FC = () => {
           </div>
           
           <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate('/notifications')}
+              variant="outline"
+              className="border-sage text-sage hover:bg-sage/20"
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Notifications
+            </Button>
+            
             <Button 
               onClick={() => navigate('/all-live-data')}
               variant="outline"

@@ -9,6 +9,12 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      Lab: {
+        Row: {}
+        Insert: {}
+        Update: {}
+        Relationships: []
+      }
       liveData: {
         Row: {
           _id: string | null

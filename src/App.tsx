@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import MongoDB from "./pages/MongoDB";
 import LiveData from "./pages/LiveData";
 import AllLiveData from "./pages/AllLiveData";
+import Notifications from "./pages/Notifications";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AllLiveData />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/notifications" 
+              element={
+                <ProtectedRoute>
+                  <Notifications />
                 </ProtectedRoute>
               } 
             />
