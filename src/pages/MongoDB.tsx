@@ -4,7 +4,7 @@ import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Database } from 'lucide-react';
+import { ArrowLeft, Database, Table } from 'lucide-react';
 import MongoDBInfo from '@/components/MongoDBInfo';
 import MongoDBEditor from '@/components/MongoDBEditor';
 
@@ -32,15 +32,25 @@ const MongoDB: React.FC = () => {
         <h1 className="text-white text-2xl font-bold mb-6">MongoDB Integration</h1>
         
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-4">
             <div></div>
-            <Button 
-              onClick={() => navigate('/live-data')}
-              className="bg-sage hover:bg-sage/90 mb-4"
-            >
-              <Database className="h-4 w-4 mr-2" />
-              View Live Data Table
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                onClick={() => navigate('/live-data')}
+                className="bg-sage hover:bg-sage/90"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                View Live Data
+              </Button>
+              
+              <Button 
+                onClick={() => navigate('/all-live-data')}
+                className="bg-sage hover:bg-sage/90"
+              >
+                <Table className="h-4 w-4 mr-2" />
+                All Live Data Table
+              </Button>
+            </div>
           </div>
           
           <MongoDBEditor />

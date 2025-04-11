@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import MongoDB from "./pages/MongoDB";
 import LiveData from "./pages/LiveData";
+import AllLiveData from "./pages/AllLiveData";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <LiveData />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/all-live-data" 
+              element={
+                <ProtectedRoute>
+                  <AllLiveData />
                 </ProtectedRoute>
               } 
             />

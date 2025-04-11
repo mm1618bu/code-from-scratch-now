@@ -4,10 +4,10 @@ import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Database, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Database, RefreshCw, Table } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Table,
+  Table as TableComponent,
   TableBody,
   TableCaption,
   TableCell,
@@ -68,25 +68,36 @@ const LiveData: React.FC = () => {
             <h1 className="text-white text-2xl font-bold">MongoDB Live Data</h1>
           </div>
           
-          <Button 
-            onClick={handleRefreshData} 
-            variant="outline" 
-            size="sm"
-            disabled={loading}
-            className="border-sage text-sage hover:bg-sage/20"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Refreshing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Data
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate('/all-live-data')}
+              variant="outline"
+              className="border-sage text-sage hover:bg-sage/20"
+            >
+              <Table className="h-4 w-4 mr-2" />
+              View All Live Data
+            </Button>
+            
+            <Button 
+              onClick={handleRefreshData} 
+              variant="outline" 
+              size="sm"
+              disabled={loading}
+              className="border-sage text-sage hover:bg-sage/20"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Data
+                </>
+              )}
+            </Button>
+          </div>
         </div>
         
         <div className="bg-dark-foreground/10 p-6 rounded-lg">
@@ -102,7 +113,7 @@ const LiveData: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <Table className="border-collapse">
+            <TableComponent className="border-collapse">
               <TableCaption>Live data from MongoDB collection</TableCaption>
               <TableHeader>
                 <TableRow className="bg-dark-foreground/20 border-b border-dark-foreground/30">
@@ -124,7 +135,7 @@ const LiveData: React.FC = () => {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </TableComponent>
           </div>
         </div>
 
