@@ -6,8 +6,17 @@ export { supabase };
 // Enable real-time channel
 const enableRealtime = async () => {
   try {
-    // Enable RLS tables to be sent over the realtime system
-    await supabase.rpc('supabase_realtime', { table: 'liveData' });
+    // Enable the realtime subscription for the liveData table
+    await supabase.channel('public:liveData')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'liveData' 
+      }, payload => {
+        console.log('Change received!', payload);
+      })
+      .subscribe();
+    
     console.log('Realtime enabled for liveData table');
   } catch (error) {
     console.error('Error enabling realtime:', error);
