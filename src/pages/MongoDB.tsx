@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
 import MongoDBInfo from '@/components/MongoDBInfo';
+import MongoDBEditor from '@/components/MongoDBEditor';
 
 const MongoDB: React.FC = () => {
   const navigate = useNavigate();
@@ -29,16 +30,21 @@ const MongoDB: React.FC = () => {
 
       <div className="flex-grow w-full max-w-4xl p-6">
         <h1 className="text-white text-2xl font-bold mb-6">MongoDB Integration</h1>
-        <div className="bg-dark-foreground/10 p-6 rounded-lg">
-          <MongoDBInfo />
-        </div>
         
-        {user && (
-          <div className="mt-8 p-4 bg-dark-foreground/10 rounded-lg">
-            <h2 className="text-white text-xl font-bold mb-4">User Information</h2>
-            <p className="text-gray-400">Current user: {user.email}</p>
+        <div className="space-y-6">
+          <MongoDBEditor />
+          
+          <div className="bg-dark-foreground/10 p-6 rounded-lg">
+            <MongoDBInfo />
           </div>
-        )}
+          
+          {user && (
+            <div className="p-4 bg-dark-foreground/10 rounded-lg">
+              <h2 className="text-white text-xl font-bold mb-4">User Information</h2>
+              <p className="text-gray-400">Current user: {user.email}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <footer className="w-full p-6 mt-auto text-center">
