@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange } from '@/lib/notification';
+import { supabase } from '@/lib/supabase';
 
 // Define machine states for random selection
 const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby'];
@@ -17,8 +18,8 @@ const MockDataGenerator = () => {
     return array[Math.floor(Math.random() * array.length)];
   };
 
-  // Generate a simulated state change
-  const generateStateChange = () => {
+  // Generate a simulated state change and update the database
+  const generateStateChange = async () => {
     const machineId = getRandomItem(MACHINE_IDS);
     const previousState = getRandomItem(MACHINE_STATES);
     let newState = getRandomItem(MACHINE_STATES);
@@ -28,7 +29,7 @@ const MockDataGenerator = () => {
       newState = getRandomItem(MACHINE_STATES);
     }
     
-    // Create and notify a state change
+    // Create state change object
     const stateChange = {
       machineId,
       previousState,
@@ -36,7 +37,44 @@ const MockDataGenerator = () => {
       timestamp: new Date().toISOString()
     };
     
-    notifyMachineStateChange(stateChange);
+    try {
+      // Update the database with the new state
+      const { error } = await supabase
+        .from('liveData')
+        .upsert({
+          machineId: machineId,
+          state: newState,
+          created_at: new Date().toISOString(),
+          _id: machineId, // Using machineId as the primary key for simplicity
+          state_duration: Math.floor(Math.random() * 3600), // Random duration in seconds
+          total_current: Math.random() * 10, // Random current value
+          CT_Avg: Math.random() * 5, // Random average current
+          CT1: Math.random() * 6, 
+          CT2: Math.random() * 6,
+          CT3: Math.random() * 6,
+          fw_version: 1.0,
+          fault_status: newState === 'error' ? 'fault_detected' : 'normal',
+          mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`
+        });
+      
+      if (error) {
+        console.error('Error updating database:', error);
+        throw error;
+      }
+      
+      console.log(`Database updated for machine ${machineId}: state changed to ${newState}`);
+      
+      // Send notifications after successful database update
+      notifyMachineStateChange(stateChange);
+      
+    } catch (error) {
+      console.error('Failed to update database:', error);
+      toast({
+        title: "Database Update Failed",
+        description: "Could not update the machine state in the database",
+        variant: "destructive"
+      });
+    }
   };
 
   // Toggle data generation on/off
