@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ const AllLiveData: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [stateFilter, setStateFilter] = useState<string>("all");
-  const itemsPerPage = 5;
+  const itemsPerPage = 10; // Increased from 5 to show more per page
 
   // Function to fetch data from Supabase
   const fetchLiveData = async () => {
@@ -53,7 +54,8 @@ const AllLiveData: React.FC = () => {
       const { data, error } = await supabase
         .from('liveData')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100); // Limit to 100 records
       
       if (error) {
         console.error('Supabase error:', error);
@@ -65,7 +67,7 @@ const AllLiveData: React.FC = () => {
         setLiveData(data);
         toast({
           title: "Data Refreshed",
-          description: `Loaded ${data.length} records from Supabase`,
+          description: `Loaded ${data.length} records from Supabase (max 100)`,
         });
       } else {
         console.log('No data returned from Supabase');
