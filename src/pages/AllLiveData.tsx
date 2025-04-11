@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, RefreshCw, Database, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Table,
   TableBody,
@@ -32,142 +34,77 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-// Mock data representing MongoDB liveData collection
-const MOCK_LIVE_DATA = [
-  { 
-    _id: '6071e8f68f25e32e7c9c5b01', 
-    machineId: 'MACH001', 
-    state: 'running', 
-    CT1: 4.52, 
-    CT2: 3.87, 
-    CT3: 6, 
-    CT_Avg: 4.21, 
-    total_current: 12.45, 
-    state_duration: 3600,
-    fault_status: 'none',
-    fw_version: 1.2,
-    mac: '00:1B:44:11:3A:B7',
-    created_at: '2025-04-10T14:30:00Z'
-  },
-  { 
-    _id: '6071e8f68f25e32e7c9c5b02', 
-    machineId: 'MACH002', 
-    state: 'idle', 
-    CT1: 0.12, 
-    CT2: 0.08, 
-    CT3: 0, 
-    CT_Avg: 0.07, 
-    total_current: 0.2, 
-    state_duration: 1800,
-    fault_status: 'none',
-    fw_version: 1.2,
-    mac: '00:1B:44:11:3A:B8',
-    created_at: '2025-04-11T09:15:00Z'
-  },
-  { 
-    _id: '6071e8f68f25e32e7c9c5b03', 
-    machineId: 'MACH003', 
-    state: 'error', 
-    CT1: 0.0, 
-    CT2: 0.0, 
-    CT3: 0, 
-    CT_Avg: 0.0, 
-    total_current: 0.0, 
-    state_duration: 7200,
-    fault_status: 'sensor_fault',
-    fw_version: 1.1,
-    mac: '00:1B:44:11:3A:B9',
-    created_at: '2025-04-09T16:45:00Z'
-  },
-  { 
-    _id: '6071e8f68f25e32e7c9c5b04', 
-    machineId: 'MACH001', 
-    state: 'running', 
-    CT1: 4.67, 
-    CT2: 3.92, 
-    CT3: 6, 
-    CT_Avg: 4.30, 
-    total_current: 12.59, 
-    state_duration: 1200,
-    fault_status: 'none',
-    fw_version: 1.2,
-    mac: '00:1B:44:11:3A:B7',
-    created_at: '2025-04-10T15:30:00Z'
-  },
-  { 
-    _id: '6071e8f68f25e32e7c9c5b05', 
-    machineId: 'MACH004', 
-    state: 'maintenance', 
-    CT1: 0.05, 
-    CT2: 0.03, 
-    CT3: 0, 
-    CT_Avg: 0.03, 
-    total_current: 0.08, 
-    state_duration: 3600,
-    fault_status: 'maintenance_mode',
-    fw_version: 1.3,
-    mac: '00:1B:44:11:3A:C1',
-    created_at: '2025-04-08T13:10:00Z'
-  },
-  { 
-    _id: '6071e8f68f25e32e7c9c5b06', 
-    machineId: 'MACH002', 
-    state: 'running', 
-    CT1: 3.87, 
-    CT2: 4.12, 
-    CT3: 5, 
-    CT_Avg: 4.01, 
-    total_current: 11.99, 
-    state_duration: 900,
-    fault_status: 'none',
-    fw_version: 1.2,
-    mac: '00:1B:44:11:3A:B8',
-    created_at: '2025-04-11T10:20:00Z'
-  },
-  { 
-    _id: '6071e8f68f25e32e7c9c5b07', 
-    machineId: 'MACH005', 
-    state: 'standby', 
-    CT1: 0.24, 
-    CT2: 0.19, 
-    CT3: 0, 
-    CT_Avg: 0.14, 
-    total_current: 0.43, 
-    state_duration: 600,
-    fault_status: 'none',
-    fw_version: 1.2,
-    mac: '00:1B:44:11:3A:D2',
-    created_at: '2025-04-10T17:45:00Z'
-  },
-];
 
 const AllLiveData: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [liveData, setLiveData] = useState(MOCK_LIVE_DATA);
-  const [loading, setLoading] = useState(false);
+  const [liveData, setLiveData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [stateFilter, setStateFilter] = useState<string>("all");
   const itemsPerPage = 5;
 
+  // Function to fetch data from Supabase
+  const fetchLiveData = async () => {
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('liveData')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        console.log('Fetched data for AllLiveData:', data);
+        setLiveData(data);
+        toast({
+          title: "Data Refreshed",
+          description: "Live data has been refreshed from Supabase",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching all live data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch live data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch and realtime subscription
+  useEffect(() => {
+    fetchLiveData();
+    
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('public:liveData')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'liveData' 
+      }, (payload) => {
+        console.log('Real-time update received for AllLiveData:', payload);
+        fetchLiveData(); // Refresh data when changes occur
+      })
+      .subscribe((status) => {
+        console.log('Supabase channel status for AllLiveData:', status);
+      });
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Get unique states for the filter
-  const uniqueStates = ["all", ...Array.from(new Set(MOCK_LIVE_DATA.map(item => item.state)))];
+  const uniqueStates = ["all", ...Array.from(new Set(liveData.map(item => item.state)))];
 
   // Filter data based on selected state
   const filteredData = stateFilter === "all" 
@@ -186,16 +123,7 @@ const AllLiveData: React.FC = () => {
   }, [stateFilter]);
 
   const handleRefreshData = () => {
-    setLoading(true);
-    
-    // Simulate API fetch delay
-    setTimeout(() => {
-      setLoading(false);
-      toast({
-        title: "Data Refreshed",
-        description: "Live data has been refreshed from MongoDB",
-      });
-    }, 800);
+    fetchLiveData();
   };
 
   const getStateColor = (state: string) => {
@@ -235,7 +163,7 @@ const AllLiveData: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Database className="h-6 w-6 mr-2 text-sage" />
-            <h1 className="text-white text-2xl font-bold">MongoDB Live Data</h1>
+            <h1 className="text-white text-2xl font-bold">Supabase Live Data</h1>
           </div>
           
           <div className="flex gap-2">
@@ -273,7 +201,7 @@ const AllLiveData: React.FC = () => {
             <div className="flex items-start">
               <div>
                 <p className="text-gray-300 text-sm">
-                  Live Data
+                  Live Data from Supabase
                 </p>
               </div>
             </div>
@@ -306,7 +234,7 @@ const AllLiveData: React.FC = () => {
 
           <ScrollArea className="h-[500px] rounded-md border border-dark-foreground/20">
             <Table className="border-collapse">
-              <TableCaption>Comprehensive MongoDB liveData collection</TableCaption>
+              <TableCaption>Comprehensive Supabase liveData collection</TableCaption>
               <TableHeader className="sticky top-0 bg-dark z-10">
                 <TableRow className="bg-dark-foreground/20 border-b border-dark-foreground/30">
                   <TableHead className="text-gray-400 whitespace-nowrap">Machine ID</TableHead>
@@ -324,9 +252,17 @@ const AllLiveData: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentData.length > 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center py-8">
+                      <div className="flex justify-center">
+                        <RefreshCw className="h-8 w-8 animate-spin text-sage" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : currentData.length > 0 ? (
                   currentData.map((item) => (
-                    <TableRow key={item._id} className="border-b border-dark-foreground/10 hover:bg-dark-foreground/5">
+                    <TableRow key={`${item.machineId}-${item.created_at}`} className="border-b border-dark-foreground/10 hover:bg-dark-foreground/5">
                       <TableCell className="text-white font-medium">{item.machineId}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStateColor(item.state)}`}>
@@ -350,7 +286,7 @@ const AllLiveData: React.FC = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={12} className="text-center py-8 text-gray-400">
-                      No data matches the selected filter
+                      {stateFilter === "all" ? "No data available in Supabase" : "No data matches the selected filter"}
                     </TableCell>
                   </TableRow>
                 )}
