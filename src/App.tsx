@@ -11,6 +11,7 @@ import Verification from "./pages/Verification";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import MongoDB from "./pages/MongoDB";
+import LiveData from "./pages/LiveData";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MongoDB />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/live-data" 
+              element={
+                <ProtectedRoute>
+                  <LiveData />
                 </ProtectedRoute>
               } 
             />

@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      liveData: {
+        Row: {
+          _id: string | null
+          created_at: string | null
+          CT_Avg: number | null
+          CT1: number | null
+          CT2: number | null
+          CT3: number | null
+          fault_status: string | null
+          fw_version: number | null
+          hi: string | null
+          mac: string | null
+          machineId: string | null
+          state: string | null
+          state_duration: number | null
+          total_current: number | null
+        }
+        Insert: {
+          _id?: string | null
+          created_at?: string | null
+          CT_Avg?: number | null
+          CT1?: number | null
+          CT2?: number | null
+          CT3?: number | null
+          fault_status?: string | null
+          fw_version?: number | null
+          hi?: string | null
+          mac?: string | null
+          machineId?: string | null
+          state?: string | null
+          state_duration?: number | null
+          total_current?: number | null
+        }
+        Update: {
+          _id?: string | null
+          created_at?: string | null
+          CT_Avg?: number | null
+          CT1?: number | null
+          CT2?: number | null
+          CT3?: number | null
+          fault_status?: string | null
+          fw_version?: number | null
+          hi?: string | null
+          mac?: string | null
+          machineId?: string | null
+          state?: string | null
+          state_duration?: number | null
+          total_current?: number | null
+        }
+        Relationships: []
+      }
       Users: {
         Row: {
           created_at: string
