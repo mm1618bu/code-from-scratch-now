@@ -39,6 +39,7 @@ const MockDataGenerator = () => {
     
     try {
       // Update the database with the new state
+      // Ensuring all values have the correct types to match the database schema
       const { error } = await supabase
         .from('liveData')
         .upsert({
@@ -46,12 +47,13 @@ const MockDataGenerator = () => {
           state: newState,
           created_at: new Date().toISOString(),
           _id: machineId, // Using machineId as the primary key for simplicity
-          state_duration: Math.floor(Math.random() * 3600), // Random duration in seconds
-          total_current: Math.random() * 10, // Random current value
-          CT_Avg: Math.random() * 5, // Random average current
-          CT1: Math.random() * 6, 
-          CT2: Math.random() * 6,
-          CT3: Math.random() * 6,
+          state_duration: Math.floor(Math.random() * 3600), // Integer for state_duration
+          total_current: Math.random() * 10, // Float for total_current
+          CT_Avg: Math.random() * 5, // Float for CT_Avg
+          CT1: Math.random() * 6, // Float for CT1
+          CT2: Math.random() * 6, // Float for CT2
+          // For CT3, convert to an integer since the database expects a bigint
+          CT3: Math.floor(Math.random() * 6), 
           fw_version: 1.0,
           fault_status: newState === 'error' ? 'fault_detected' : 'normal',
           mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`
