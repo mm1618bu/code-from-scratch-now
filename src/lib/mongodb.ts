@@ -1,8 +1,12 @@
 
+// NOTE: This file is for reference only and won't be used directly in the browser.
+// MongoDB Node.js driver is not compatible with browser environments.
+// In a real application, you would have a backend service with this code.
+
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-// Using a real connection string from the user
-const uri = "mongodb+srv://user:password@cluster0.mongodb.net/?retryWrites=true&w=majority";
+// Using a placeholder connection string (in a real app, use environment variables)
+const uri = "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -50,3 +54,17 @@ process.on('SIGINT', async () => {
     process.exit(0);
   }
 });
+
+// In a real application with a backend service, you would create API endpoints like:
+/*
+app.get('/api/documents', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase('your_database_name');
+    const collection = db.collection('your_collection_name');
+    const documents = await collection.find({}).limit(10).toArray();
+    res.json(documents);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch documents' });
+  }
+});
+*/

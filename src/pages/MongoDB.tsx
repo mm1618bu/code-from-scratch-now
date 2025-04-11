@@ -1,11 +1,11 @@
 
 import React from 'react';
-import MongoExample from '@/components/MongoExample';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
+import MongoDBInfo from '@/components/MongoDBInfo';
 
 const MongoDB: React.FC = () => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ const MongoDB: React.FC = () => {
       <div className="flex-grow w-full max-w-4xl p-6">
         <h1 className="text-white text-2xl font-bold mb-6">MongoDB Integration</h1>
         <div className="bg-dark-foreground/10 p-6 rounded-lg">
-          <MongoExample />
+          <MongoDBInfo />
         </div>
         
         {user && (
