@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Copy, RefreshCw } from 'lucide-react';
+import { Check, Copy, RefreshCw, User } from 'lucide-react';
 
 const MongoDBEditor: React.FC = () => {
   const { toast } = useToast();
@@ -64,6 +64,26 @@ const MongoDBEditor: React.FC = () => {
       description: "Editor has been reset to default",
     });
   };
+  
+  const loadUserTemplate = () => {
+    setEditorContent(`/** 
+* User document template
+*/
+{
+  "_id": {
+    "$oid": "67f87480ce0765f711e0deda"
+  },
+  "userId": "user123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "password": "hashed_password_here"
+}`);
+    toast({
+      title: "User Template Loaded",
+      description: "User document template has been loaded",
+    });
+  };
 
   return (
     <Card className="bg-dark-foreground/10 border-dark-foreground/20">
@@ -80,7 +100,7 @@ const MongoDBEditor: React.FC = () => {
           />
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex justify-between flex-wrap gap-2">
         <div>
           <Button
             onClick={handleReset}
@@ -89,6 +109,14 @@ const MongoDBEditor: React.FC = () => {
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset
+          </Button>
+          <Button
+            onClick={loadUserTemplate}
+            variant="outline"
+            className="border-dark-foreground/20 text-gray-400 hover:bg-dark-foreground/20 hover:text-white"
+          >
+            <User className="h-4 w-4 mr-2" />
+            Load User Template
           </Button>
         </div>
         <div>
