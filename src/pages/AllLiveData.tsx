@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, RefreshCw, Database, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { 
   Table,
   TableBody,
@@ -50,12 +49,14 @@ const AllLiveData: React.FC = () => {
     setLoading(true);
     
     try {
+      console.log('Fetching data from Supabase...');
       const { data, error } = await supabase
         .from('liveData')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
       
@@ -64,8 +65,10 @@ const AllLiveData: React.FC = () => {
         setLiveData(data);
         toast({
           title: "Data Refreshed",
-          description: "Live data has been refreshed from Supabase",
+          description: `Loaded ${data.length} records from Supabase`,
         });
+      } else {
+        console.log('No data returned from Supabase');
       }
     } catch (error) {
       console.error('Error fetching all live data:', error);
