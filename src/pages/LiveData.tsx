@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Database, RefreshCw, Table, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Table as TableComponent,
   TableBody,
@@ -16,34 +17,66 @@ import {
   TableRow
 } from '@/components/ui/table';
 
-// Mock data - in a real application this would come from an API
-const MOCK_LIVE_DATA = [
-  { _id: '6071e8f68f25e32e7c9c5b01', name: 'John Doe', email: 'john@example.com', lastActive: '2025-04-10T14:30:00Z' },
-  { _id: '6071e8f68f25e32e7c9c5b02', name: 'Jane Smith', email: 'jane@example.com', lastActive: '2025-04-11T09:15:00Z' },
-  { _id: '6071e8f68f25e32e7c9c5b03', name: 'Bob Johnson', email: 'bob@example.com', lastActive: '2025-04-09T16:45:00Z' },
-  { _id: '6071e8f68f25e32e7c9c5b04', name: 'Alice Williams', email: 'alice@example.com', lastActive: '2025-04-10T11:20:00Z' },
-  { _id: '6071e8f68f25e32e7c9c5b05', name: 'Charlie Brown', email: 'charlie@example.com', lastActive: '2025-04-08T13:10:00Z' },
-];
-
 const LiveData: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [liveData, setLiveData] = useState(MOCK_LIVE_DATA);
-  const [loading, setLoading] = useState(false);
+  const [liveData, setLiveData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleRefreshData = () => {
+  const fetchLiveData = async () => {
     setLoading(true);
     
-    // Simulate API fetch delay
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('liveData')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setLiveData(data);
+        toast({
+          title: "Data Refreshed",
+          description: "Live data has been refreshed from Supabase",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching live data:', error);
       toast({
-        title: "Data Refreshed",
-        description: "Live data has been refreshed from MongoDB",
+        title: "Error",
+        description: "Failed to fetch live data",
+        variant: "destructive"
       });
-    }, 800);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchLiveData();
+    
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('public:liveData')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'liveData' 
+      }, (payload) => {
+        console.log('Real-time update:', payload);
+        fetchLiveData();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-dark flex flex-col items-center">
@@ -65,7 +98,7 @@ const LiveData: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Database className="h-5 w-5 mr-2 text-sage" />
-            <h1 className="text-white text-2xl font-bold">MongoDB Live Data</h1>
+            <h1 className="text-white text-2xl font-bold">Supabase Live Data</h1>
           </div>
           
           <div className="flex gap-2">
@@ -88,7 +121,7 @@ const LiveData: React.FC = () => {
             </Button>
             
             <Button 
-              onClick={handleRefreshData} 
+              onClick={fetchLiveData} 
               variant="outline" 
               size="sm"
               disabled={loading}
@@ -110,42 +143,69 @@ const LiveData: React.FC = () => {
         </div>
         
         <div className="bg-dark-foreground/10 p-6 rounded-lg">
-          <div className="p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg mb-6">
-            <div className="flex items-start">
-              <div>
-                <p className="text-gray-300 text-sm">
-                  This is a demonstration of MongoDB data display. In a production application,
-                  this data would be fetched from your MongoDB database via a backend API.
-                </p>
-              </div>
+          {liveData.length === 0 && !loading ? (
+            <div className="p-8 text-center text-gray-400">
+              <p>No data available. Try clicking "Start Mock Data" to generate some data.</p>
             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <TableComponent className="border-collapse">
-              <TableCaption>Live data from MongoDB collection</TableCaption>
-              <TableHeader>
-                <TableRow className="bg-dark-foreground/20 border-b border-dark-foreground/30">
-                  <TableHead className="text-gray-400">ID</TableHead>
-                  <TableHead className="text-gray-400">Name</TableHead>
-                  <TableHead className="text-gray-400">Email</TableHead>
-                  <TableHead className="text-gray-400">Last Active</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {liveData.map((item) => (
-                  <TableRow key={item._id} className="border-b border-dark-foreground/10 hover:bg-dark-foreground/5">
-                    <TableCell className="text-sm text-gray-300 font-mono">{item._id}</TableCell>
-                    <TableCell className="text-white">{item.name}</TableCell>
-                    <TableCell className="text-gray-400">{item.email}</TableCell>
-                    <TableCell className="text-gray-400">
-                      {new Date(item.lastActive).toLocaleString()}
-                    </TableCell>
+          ) : (
+            <div className="overflow-x-auto">
+              <TableComponent className="border-collapse">
+                <TableCaption>Live data from Supabase collection</TableCaption>
+                <TableHeader>
+                  <TableRow className="bg-dark-foreground/20 border-b border-dark-foreground/30">
+                    <TableHead className="text-gray-400">Machine ID</TableHead>
+                    <TableHead className="text-gray-400">State</TableHead>
+                    <TableHead className="text-gray-400">Timestamp</TableHead>
+                    <TableHead className="text-gray-400">Current Avg</TableHead>
+                    <TableHead className="text-gray-400">Fault Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </TableComponent>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <div className="flex justify-center">
+                          <RefreshCw className="h-8 w-8 animate-spin text-sage" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    liveData.map((item: any) => (
+                      <TableRow key={`${item.machineId}-${item.created_at}`} className="border-b border-dark-foreground/10 hover:bg-dark-foreground/5">
+                        <TableCell className="text-white">{item.machineId}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            item.state === 'running' ? 'bg-green-500/20 text-green-400' :
+                            item.state === 'idle' ? 'bg-blue-500/20 text-blue-400' :
+                            item.state === 'error' ? 'bg-red-500/20 text-red-400' :
+                            item.state === 'maintenance' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {item.state}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-gray-400">
+                          {new Date(item.created_at).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-gray-400">{item.CT_Avg?.toFixed(2) || 'N/A'}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            item.fault_status === 'normal' ? 'bg-green-500/20 text-green-400' :
+                            item.fault_status === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                            item.fault_status === 'critical' ? 'bg-red-500/20 text-red-400' :
+                            item.fault_status === 'fault_detected' ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {item.fault_status || 'N/A'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </TableComponent>
+            </div>
+          )}
         </div>
 
         {user && (

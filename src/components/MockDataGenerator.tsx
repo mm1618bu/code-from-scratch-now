@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange } from '@/lib/notification';
@@ -61,7 +60,6 @@ const MockDataGenerator = () => {
     
     try {
       // Update the database with the new state
-      // Ensuring all values have the correct types to match the database schema
       const { error } = await supabase
         .from('liveData')
         .upsert({
@@ -69,13 +67,12 @@ const MockDataGenerator = () => {
           state: newState,
           created_at: newTimestamp.toISOString(),
           _id: machineId, // Using machineId as the primary key for simplicity
-          state_duration: Math.floor(Math.random() * 3600), // Integer for state_duration
-          total_current: totalCurrent, // Float for total_current
-          CT_Avg: ctAvg, // Float for CT_Avg
-          CT1: ct1, // Float for CT1
-          CT2: ct2, // Float for CT2
-          // For CT3, convert to an integer since the database expects a bigint
-          CT3: ct3, 
+          state_duration: Math.floor(Math.random() * 3600),
+          total_current: totalCurrent,
+          CT_Avg: ctAvg,
+          CT1: ct1,
+          CT2: ct2,
+          CT3: ct3,
           fw_version: getRandomFloat(1.0, 5.0, 1),
           fault_status: faultStatus,
           mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
