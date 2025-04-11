@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange } from '@/lib/notification';
@@ -34,31 +35,46 @@ const MockDataGenerator = () => {
     
     // Generate mock data similar to the Python script
     const machineId = getRandomItem(MACHINE_IDS);
-    const previousState = getRandomItem(MACHINE_STATES);
-    let newState = getRandomItem(MACHINE_STATES);
-    
-    // Make sure the new state is different from the previous state
-    while (newState === previousState) {
-      newState = getRandomItem(MACHINE_STATES);
-    }
-    
-    // Generate random values for currents
-    const ct1 = getRandomFloat(0.5, 6.0);
-    const ct2 = getRandomFloat(0.5, 6.0);
-    const ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
-    const ctAvg = getRandomFloat((ct1 + ct2 + Number(ct3)) / 3, 5.0);
-    const totalCurrent = getRandomFloat(1.5, 30.0);
-    const faultStatus = getRandomItem(FAULT_STATUSES);
-    
-    // Create state change object for notification
-    const stateChange = {
-      machineId,
-      previousState,
-      newState,
-      timestamp: newTimestamp.toISOString()
-    };
     
     try {
+      // Get the current state for this machine
+      const { data: currentData } = await supabase
+        .from('liveData')
+        .select('state')
+        .eq('machineId', machineId)
+        .maybeSingle();
+      
+      const previousState = currentData?.state || getRandomItem(MACHINE_STATES);
+      let newState = getRandomItem(MACHINE_STATES);
+      
+      // Make sure the new state is different from the previous state
+      while (newState === previousState) {
+        newState = getRandomItem(MACHINE_STATES);
+      }
+      
+      // Generate random values for currents
+      const ct1 = getRandomFloat(0.5, 6.0);
+      const ct2 = getRandomFloat(0.5, 6.0);
+      const ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
+      const ctAvg = getRandomFloat((ct1 + ct2 + Number(ct3)) / 3, 5.0);
+      const totalCurrent = getRandomFloat(1.5, 30.0);
+      const faultStatus = getRandomItem(FAULT_STATUSES);
+      
+      // Create state change object for notification
+      const stateChange = {
+        machineId,
+        previousState,
+        newState,
+        timestamp: newTimestamp.toISOString()
+      };
+      
+      console.log('Attempting to update database with:', {
+        machineId,
+        state: newState,
+        previousState,
+        created_at: newTimestamp.toISOString(),
+      });
+      
       // Update the database with the new state
       const { error } = await supabase
         .from('liveData')

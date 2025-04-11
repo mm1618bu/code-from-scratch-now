@@ -39,6 +39,7 @@ const LiveData: React.FC = () => {
       }
       
       if (data) {
+        console.log('Fetched data:', data);
         setLiveData(data);
         toast({
           title: "Data Refreshed",
@@ -68,10 +69,12 @@ const LiveData: React.FC = () => {
         schema: 'public', 
         table: 'liveData' 
       }, (payload) => {
-        console.log('Real-time update:', payload);
-        fetchLiveData();
+        console.log('Real-time update received:', payload);
+        fetchLiveData(); // Refresh data when changes occur
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Supabase channel status:', status);
+      });
       
     return () => {
       supabase.removeChannel(channel);
