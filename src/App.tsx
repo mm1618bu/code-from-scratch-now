@@ -15,6 +15,7 @@ import LiveData from "./pages/LiveData";
 import AllLiveData from "./pages/AllLiveData";
 import Notifications from "./pages/Notifications";
 import ProtectedRoute from "./components/ProtectedRoute";
+import MockDataGenerator from "./components/MockDataGenerator";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <MockDataGenerator />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
