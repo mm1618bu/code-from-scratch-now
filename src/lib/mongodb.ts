@@ -5,8 +5,8 @@
 
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-// Using a placeholder connection string (in a real app, use environment variables)
-const uri = "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority";
+// Using the provided connection string (in a real app, use environment variables)
+const uri = "mongodb+srv://user1234:password1234@cluster0.8g0ewok.mongodb.net/";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
