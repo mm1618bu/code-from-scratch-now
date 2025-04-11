@@ -274,8 +274,8 @@ const AllLiveData: React.FC = () => {
             <div className="flex items-start">
               <div>
                 <p className="text-gray-300 text-sm">
-                  This table displays a comprehensive view of all liveData records from MongoDB. 
-                  In a production application, this data would be fetched from your MongoDB database via a backend API.
+                  This table displays mock data that simulates what live machine data would look like. 
+                  Note that MongoDB is not currently being used - this is sample data for demonstration purposes only.
                 </p>
               </div>
             </div>
