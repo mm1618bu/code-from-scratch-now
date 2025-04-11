@@ -68,21 +68,21 @@ const MockDataGenerator = () => {
         timestamp: newTimestamp.toISOString()
       };
       
-      console.log('Attempting to update database with:', {
+      console.log('Attempting to insert data into liveData table:', {
         machineId,
         state: newState,
         previousState,
         created_at: newTimestamp.toISOString(),
       });
       
-      // Update the database with the new state
+      // Insert into the database with the new state
       const { error } = await supabase
         .from('liveData')
-        .upsert({
+        .insert({
           machineId: machineId,
           state: newState,
           created_at: newTimestamp.toISOString(),
-          _id: machineId, // Using machineId as the primary key for simplicity
+          _id: uuidv4(), // Generate a unique ID for each record
           state_duration: Math.floor(Math.random() * 3600),
           total_current: totalCurrent,
           CT_Avg: ctAvg,
@@ -96,7 +96,7 @@ const MockDataGenerator = () => {
         });
       
       if (error) {
-        console.error('Error updating database:', error);
+        console.error('Error inserting data:', error);
         throw error;
       }
       

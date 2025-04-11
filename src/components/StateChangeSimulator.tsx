@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 // Default state options if no data is loaded from the database
 const defaultStates = ['running', 'idle', 'error', 'maintenance', 'standby'];
@@ -182,13 +183,14 @@ const StateChangeSimulator: React.FC = () => {
         timestamp: new Date().toISOString()
       });
       
-      // Also update the database with the new state
+      // Insert the new state into the database
       const { error } = await supabase
         .from('liveData')
         .insert({
           machineId: selectedMachine,
           state: targetState,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          _id: uuidv4() // Generate a unique ID for each record
         });
         
       if (error) {
