@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
 
-const LoginForm: React.FC = () => {
+const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast({
@@ -22,13 +22,13 @@ const LoginForm: React.FC = () => {
     
     // In a real application, this would connect to an authentication service
     toast({
-      title: "Login Attempted",
-      description: "This is a demo. In a real app, this would authenticate you.",
+      title: "Registration Attempted",
+      description: "This is a demo. In a real app, this would create an account for you.",
     });
   };
 
   return (
-    <form onSubmit={handleLogin} className="w-full">
+    <form onSubmit={handleRegister} className="w-full">
       <div className="space-y-4">
         <div className="space-y-2">
           <label htmlFor="email" className="text-xs uppercase tracking-wide text-gray-300">
@@ -58,25 +58,23 @@ const LoginForm: React.FC = () => {
           />
         </div>
         
-        <div className="text-right">
-          <a href="#" className="text-xs text-gray-400 hover:text-sage">
-            Forgot your Password?
-          </a>
-        </div>
-        
         <Button
           type="submit"
-          className="w-full bg-sage hover:bg-sage/90 text-white py-6 rounded"
+          className="w-full bg-teal-500 hover:bg-teal-600 text-white py-6 rounded"
         >
-          Sign in
+          Register
         </Button>
         
+        <div className="text-xs text-gray-400 text-center">
+          By registering you agree to Sage's <a href="#" className="text-teal-500 hover:underline">Terms of Service</a> and <a href="#" className="text-teal-500 hover:underline">Privacy Policy</a>.
+        </div>
+        
         <div className="text-center text-sm text-gray-400">
-          Need an account? <Link to="/register" className="text-sage hover:underline">Sign up</Link>
+          Already have an account? <Link to="/" className="text-teal-500 hover:underline">Sign in</Link>
         </div>
       </div>
     </form>
   );
 };
 
-export default LoginForm;
+export default RegisterForm;
