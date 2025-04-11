@@ -34,6 +34,7 @@ const StateChangeSimulator: React.FC = () => {
   const [targetState, setTargetState] = useState('');
   const [isSimulating, setIsSimulating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentRecordId, setCurrentRecordId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch machines and their states from Supabase
@@ -136,7 +137,7 @@ const StateChangeSimulator: React.FC = () => {
         
         const { data, error } = await supabase
           .from('liveData')
-          .select('state')
+          .select('state, _id')
           .eq('machineId', selectedMachine)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -150,6 +151,7 @@ const StateChangeSimulator: React.FC = () => {
 
         if (data && data.length > 0 && data[0].state) {
           setCurrentState(data[0].state);
+          setCurrentRecordId(data[0]._id);
           
           // Update target state to be different from current
           const otherStates = states.filter(state => state !== data[0].state);
@@ -183,15 +185,35 @@ const StateChangeSimulator: React.FC = () => {
         timestamp: new Date().toISOString()
       });
       
-      // Insert the new state into the database
-      const { error } = await supabase
-        .from('liveData')
-        .insert({
-          machineId: selectedMachine,
-          state: targetState,
-          created_at: new Date().toISOString(),
-          _id: uuidv4() // Generate a unique ID for each record
-        });
+      let error;
+      
+      if (currentRecordId) {
+        // Update existing record
+        console.log(`Updating existing record for machine ${selectedMachine} with ID ${currentRecordId}`);
+        const { error: updateError } = await supabase
+          .from('liveData')
+          .update({
+            machineId: selectedMachine,
+            state: targetState,
+            created_at: new Date().toISOString()
+          })
+          .eq('_id', currentRecordId);
+          
+        error = updateError;
+      } else {
+        // Insert new record if none exists
+        console.log(`Creating new record for machine ${selectedMachine}`);
+        const { error: insertError } = await supabase
+          .from('liveData')
+          .insert({
+            machineId: selectedMachine,
+            state: targetState,
+            created_at: new Date().toISOString(),
+            _id: uuidv4() // Generate a unique ID for new records
+          });
+          
+        error = insertError;
+      }
         
       if (error) {
         console.error('Error updating state in database:', error);

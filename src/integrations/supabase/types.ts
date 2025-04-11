@@ -17,7 +17,7 @@ export type Database = {
       }
       liveData: {
         Row: {
-          _id: string | null
+          _id: string
           created_at: string | null
           CT_Avg: number | null
           CT1: number | null
@@ -33,7 +33,7 @@ export type Database = {
           total_current: number | null
         }
         Insert: {
-          _id?: string | null
+          _id: string
           created_at?: string | null
           CT_Avg?: number | null
           CT1?: number | null
@@ -49,7 +49,7 @@ export type Database = {
           total_current?: number | null
         }
         Update: {
-          _id?: string | null
+          _id?: string
           created_at?: string | null
           CT_Avg?: number | null
           CT1?: number | null

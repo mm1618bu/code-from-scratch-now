@@ -40,7 +40,7 @@ const MockDataGenerator = () => {
       // Get the current state for this machine
       const { data: currentData } = await supabase
         .from('liveData')
-        .select('state')
+        .select('state, _id')
         .eq('machineId', machineId)
         .maybeSingle();
       
@@ -68,35 +68,49 @@ const MockDataGenerator = () => {
         timestamp: newTimestamp.toISOString()
       };
       
-      console.log('Attempting to insert data into liveData table:', {
-        machineId,
+      // Prepare the data update
+      const dataUpdate = {
+        machineId: machineId,
         state: newState,
-        previousState,
         created_at: newTimestamp.toISOString(),
-      });
+        state_duration: Math.floor(Math.random() * 3600),
+        total_current: totalCurrent,
+        CT_Avg: ctAvg,
+        CT1: ct1,
+        CT2: ct2,
+        CT3: ct3,
+        fw_version: getRandomFloat(1.0, 5.0, 1),
+        fault_status: faultStatus,
+        mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
+        hi: Math.floor(Math.random() * 100).toString()
+      };
       
-      // Insert into the database with the new state
-      const { error } = await supabase
-        .from('liveData')
-        .insert({
-          machineId: machineId,
-          state: newState,
-          created_at: newTimestamp.toISOString(),
-          _id: uuidv4(), // Generate a unique ID for each record
-          state_duration: Math.floor(Math.random() * 3600),
-          total_current: totalCurrent,
-          CT_Avg: ctAvg,
-          CT1: ct1,
-          CT2: ct2,
-          CT3: ct3,
-          fw_version: getRandomFloat(1.0, 5.0, 1),
-          fault_status: faultStatus,
-          mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
-          hi: Math.floor(Math.random() * 100).toString()
-        });
+      let error;
+      
+      if (currentData && currentData._id) {
+        // Update existing record
+        console.log(`Updating existing record for machine ${machineId} with ID ${currentData._id}`);
+        const { error: updateError } = await supabase
+          .from('liveData')
+          .update(dataUpdate)
+          .eq('_id', currentData._id);
+          
+        error = updateError;
+      } else {
+        // Insert new record if none exists
+        console.log(`Creating new record for machine ${machineId}`);
+        const { error: insertError } = await supabase
+          .from('liveData')
+          .insert({
+            ...dataUpdate,
+            _id: uuidv4() // Generate a unique ID for new records
+          });
+          
+        error = insertError;
+      }
       
       if (error) {
-        console.error('Error inserting data:', error);
+        console.error('Error updating database:', error);
         throw error;
       }
       
