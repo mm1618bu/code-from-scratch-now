@@ -3,23 +3,37 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange } from '@/lib/notification';
 import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
 // Define machine states for random selection
 const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby'];
 const MACHINE_IDS = ['MACH001', 'MACH002', 'MACH003', 'MACH004', 'MACH005'];
+const FAULT_STATUSES = ['fault_detected', 'normal', 'warning', 'critical'];
 
 const MockDataGenerator = () => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [intervalId, setIntervalId] = useState<number | null>(null);
+  const [lastTimestamp, setLastTimestamp] = useState(new Date());
 
   // Helper function to get a random item from an array
   const getRandomItem = <T,>(array: T[]): T => {
     return array[Math.floor(Math.random() * array.length)];
   };
 
+  // Helper function to get a random float between min and max, with precision
+  const getRandomFloat = (min: number, max: number, precision: number = 2): number => {
+    const value = Math.random() * (max - min) + min;
+    return parseFloat(value.toFixed(precision));
+  };
+
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
+    // Update the timestamp by adding 5 seconds
+    const newTimestamp = new Date(lastTimestamp.getTime() + 5000);
+    setLastTimestamp(newTimestamp);
+    
+    // Generate mock data similar to the Python script
     const machineId = getRandomItem(MACHINE_IDS);
     const previousState = getRandomItem(MACHINE_STATES);
     let newState = getRandomItem(MACHINE_STATES);
@@ -29,12 +43,20 @@ const MockDataGenerator = () => {
       newState = getRandomItem(MACHINE_STATES);
     }
     
-    // Create state change object
+    // Generate random values for currents
+    const ct1 = getRandomFloat(0.5, 6.0);
+    const ct2 = getRandomFloat(0.5, 6.0);
+    const ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
+    const ctAvg = getRandomFloat((ct1 + ct2 + Number(ct3)) / 3, 5.0);
+    const totalCurrent = getRandomFloat(1.5, 30.0);
+    const faultStatus = getRandomItem(FAULT_STATUSES);
+    
+    // Create state change object for notification
     const stateChange = {
       machineId,
       previousState,
       newState,
-      timestamp: new Date().toISOString()
+      timestamp: newTimestamp.toISOString()
     };
     
     try {
@@ -45,18 +67,19 @@ const MockDataGenerator = () => {
         .upsert({
           machineId: machineId,
           state: newState,
-          created_at: new Date().toISOString(),
+          created_at: newTimestamp.toISOString(),
           _id: machineId, // Using machineId as the primary key for simplicity
           state_duration: Math.floor(Math.random() * 3600), // Integer for state_duration
-          total_current: Math.random() * 10, // Float for total_current
-          CT_Avg: Math.random() * 5, // Float for CT_Avg
-          CT1: Math.random() * 6, // Float for CT1
-          CT2: Math.random() * 6, // Float for CT2
+          total_current: totalCurrent, // Float for total_current
+          CT_Avg: ctAvg, // Float for CT_Avg
+          CT1: ct1, // Float for CT1
+          CT2: ct2, // Float for CT2
           // For CT3, convert to an integer since the database expects a bigint
-          CT3: Math.floor(Math.random() * 6), 
-          fw_version: 1.0,
-          fault_status: newState === 'error' ? 'fault_detected' : 'normal',
-          mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`
+          CT3: ct3, 
+          fw_version: getRandomFloat(1.0, 5.0, 1),
+          fault_status: faultStatus,
+          mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
+          hi: Math.floor(Math.random() * 100).toString()
         });
       
       if (error) {
