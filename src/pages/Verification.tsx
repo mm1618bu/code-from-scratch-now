@@ -3,9 +3,12 @@ import React from 'react';
 import { Link } from "react-router-dom";
 import SageLogo from '@/components/SageLogo';
 import { Button } from "@/components/ui/button";
-import { Ban } from "lucide-react";
+import { Ban, Mail } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Verification: React.FC = () => {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="min-h-screen bg-dark flex flex-col items-center">
       {/* Header with logo */}
@@ -23,11 +26,18 @@ const Verification: React.FC = () => {
       {/* Main content */}
       <div className="flex-grow flex flex-col justify-center items-center px-6 text-center">
         <div className="bg-dark-foreground/10 p-6 rounded-full mb-4">
-          <Ban size={48} className="text-gray-400" />
+          <Mail size={48} className="text-sage" />
         </div>
         <h1 className="text-white text-xl font-medium mb-2">Verification Required</h1>
+        <p className="text-gray-400 mb-4">
+          To continue using Sage, we need to verify your email address.
+        </p>
         <p className="text-gray-400 mb-8">
-          To continue using Sage, we will need to verify your Account.
+          {user?.email ? (
+            <>We've sent a verification link to <span className="text-sage">{user.email}</span></>
+          ) : (
+            'Please check your email for a verification link.'
+          )}
         </p>
       </div>
 
@@ -37,7 +47,7 @@ const Verification: React.FC = () => {
         <div className="flex justify-center space-x-4 text-sm">
           <Link to="#" className="text-sage hover:underline">Support</Link>
           <span className="text-gray-600">•</span>
-          <Link to="/" className="text-sage hover:underline">Logout</Link>
+          <Link to="/" className="text-sage hover:underline" onClick={() => signOut()}>Logout</Link>
         </div>
       </footer>
     </div>
