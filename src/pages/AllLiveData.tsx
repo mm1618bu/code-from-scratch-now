@@ -24,6 +24,29 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // Mock data representing MongoDB liveData collection
 const MOCK_LIVE_DATA = [
@@ -141,13 +164,27 @@ const AllLiveData: React.FC = () => {
   const [liveData, setLiveData] = useState(MOCK_LIVE_DATA);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [stateFilter, setStateFilter] = useState<string>("all");
   const itemsPerPage = 5;
 
-  const totalPages = Math.ceil(liveData.length / itemsPerPage);
-  const currentData = liveData.slice(
+  // Get unique states for the filter
+  const uniqueStates = ["all", ...Array.from(new Set(MOCK_LIVE_DATA.map(item => item.state)))];
+
+  // Filter data based on selected state
+  const filteredData = stateFilter === "all" 
+    ? liveData 
+    : liveData.filter(item => item.state === stateFilter);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const currentData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Reset to first page when filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [stateFilter]);
 
   const handleRefreshData = () => {
     setLoading(true);
@@ -244,6 +281,31 @@ const AllLiveData: React.FC = () => {
             </div>
           </div>
 
+          <div className="mb-4 flex justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Filter by State:</span>
+              <Select
+                value={stateFilter}
+                onValueChange={setStateFilter}
+              >
+                <SelectTrigger className="w-[180px] bg-dark-foreground/20 border-dark-foreground/30 text-white">
+                  <SelectValue placeholder="Select a state" />
+                </SelectTrigger>
+                <SelectContent className="bg-dark border-dark-foreground/30">
+                  <SelectGroup>
+                    <SelectLabel className="text-gray-400">Machine States</SelectLabel>
+                    {uniqueStates.map((state) => (
+                      <SelectItem key={state} value={state} className="text-white capitalize hover:bg-dark-foreground/20">
+                        {state === "all" ? "All States" : state}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Filter className="h-4 w-4 text-sage" />
+            </div>
+          </div>
+
           <ScrollArea className="h-[500px] rounded-md border border-dark-foreground/20">
             <Table className="border-collapse">
               <TableCaption>Comprehensive MongoDB liveData collection</TableCaption>
@@ -264,28 +326,36 @@ const AllLiveData: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentData.map((item) => (
-                  <TableRow key={item._id} className="border-b border-dark-foreground/10 hover:bg-dark-foreground/5">
-                    <TableCell className="text-white font-medium">{item.machineId}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStateColor(item.state)}`}>
-                        {item.state}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-gray-300">{item.CT1}</TableCell>
-                    <TableCell className="text-gray-300">{item.CT2}</TableCell>
-                    <TableCell className="text-gray-300">{item.CT3}</TableCell>
-                    <TableCell className="text-gray-300">{item.CT_Avg}</TableCell>
-                    <TableCell className="text-gray-300">{item.total_current}</TableCell>
-                    <TableCell className="text-gray-300">{item.state_duration}s</TableCell>
-                    <TableCell className="text-gray-300">{item.fault_status}</TableCell>
-                    <TableCell className="text-gray-300">{item.fw_version}</TableCell>
-                    <TableCell className="text-gray-300 font-mono text-xs">{item.mac}</TableCell>
-                    <TableCell className="text-gray-300 whitespace-nowrap">
-                      {new Date(item.created_at).toLocaleString()}
+                {currentData.length > 0 ? (
+                  currentData.map((item) => (
+                    <TableRow key={item._id} className="border-b border-dark-foreground/10 hover:bg-dark-foreground/5">
+                      <TableCell className="text-white font-medium">{item.machineId}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStateColor(item.state)}`}>
+                          {item.state}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-gray-300">{item.CT1}</TableCell>
+                      <TableCell className="text-gray-300">{item.CT2}</TableCell>
+                      <TableCell className="text-gray-300">{item.CT3}</TableCell>
+                      <TableCell className="text-gray-300">{item.CT_Avg}</TableCell>
+                      <TableCell className="text-gray-300">{item.total_current}</TableCell>
+                      <TableCell className="text-gray-300">{item.state_duration}s</TableCell>
+                      <TableCell className="text-gray-300">{item.fault_status}</TableCell>
+                      <TableCell className="text-gray-300">{item.fw_version}</TableCell>
+                      <TableCell className="text-gray-300 font-mono text-xs">{item.mac}</TableCell>
+                      <TableCell className="text-gray-300 whitespace-nowrap">
+                        {new Date(item.created_at).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center py-8 text-gray-400">
+                      No data matches the selected filter
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </ScrollArea>
