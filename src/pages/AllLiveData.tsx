@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -274,8 +273,7 @@ const AllLiveData: React.FC = () => {
             <div className="flex items-start">
               <div>
                 <p className="text-gray-300 text-sm">
-                  This table displays mock data that simulates what live machine data would look like. 
-                  Note that MongoDB is not currently being used - this is sample data for demonstration purposes only.
+                  Live Data
                 </p>
               </div>
             </div>
