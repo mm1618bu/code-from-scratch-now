@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, RefreshCw, Database, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Table,
   TableBody,
@@ -51,6 +51,7 @@ const AllLiveData: React.FC = () => {
     
     try {
       console.log('Fetching data from Supabase...');
+      // Ensure we're using the correct Supabase client and table
       const { data, error } = await supabase
         .from('liveData')
         .select('*')

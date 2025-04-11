@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const LiveData: React.FC = () => {
     try {
       console.log('Fetching live data from Supabase...');
       
+      // Use the direct Supabase client import and limit to 5 records
       const { data, error } = await supabase
         .from('liveData')
         .select('*')
