@@ -1,13 +1,13 @@
-
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +23,11 @@ const LoginForm: React.FC = () => {
     // In a real application, this would connect to an authentication service
     toast({
       title: "Login Attempted",
-      description: "This is a demo. In a real app, this would authenticate you.",
+      description: "This is a demo. Redirecting to verification page.",
     });
+    
+    // Redirect to verification page
+    navigate('/verification');
   };
 
   return (
