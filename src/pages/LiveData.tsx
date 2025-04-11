@@ -28,6 +28,8 @@ const LiveData: React.FC = () => {
     setLoading(true);
     
     try {
+      console.log('Fetching live data from Supabase...');
+      
       const { data, error } = await supabase
         .from('liveData')
         .select('*')
@@ -35,6 +37,7 @@ const LiveData: React.FC = () => {
         .limit(5);
       
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
       
@@ -44,6 +47,12 @@ const LiveData: React.FC = () => {
         toast({
           title: "Data Refreshed",
           description: "Live data has been refreshed from Supabase",
+        });
+      } else {
+        console.log('No data returned from Supabase');
+        toast({
+          title: "No Data",
+          description: "No live data available. Try generating mock data.",
         });
       }
     } catch (error) {

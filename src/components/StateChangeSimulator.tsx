@@ -19,7 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 // Default state options if no data is loaded from the database
 const defaultStates = ['running', 'idle', 'error', 'maintenance', 'standby'];
@@ -32,12 +33,15 @@ const StateChangeSimulator: React.FC = () => {
   const [targetState, setTargetState] = useState('');
   const [isSimulating, setIsSimulating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   // Fetch machines and their states from Supabase
   useEffect(() => {
     const fetchMachines = async () => {
       try {
         setIsLoading(true);
+        console.log('Fetching machines from Supabase...');
+        
         const { data, error } = await supabase
           .from('liveData')
           .select('machineId, state')
@@ -45,8 +49,15 @@ const StateChangeSimulator: React.FC = () => {
 
         if (error) {
           console.error('Error fetching machines:', error);
+          toast({
+            title: "Error fetching machines",
+            description: error.message,
+            variant: "destructive"
+          });
           return;
         }
+
+        console.log('Fetched data:', data);
 
         if (data && data.length > 0) {
           // Extract unique machine IDs
@@ -54,6 +65,9 @@ const StateChangeSimulator: React.FC = () => {
           
           // Extract unique states
           const uniqueStates = [...new Set(data.map(item => item.state))].filter(Boolean) as string[];
+          
+          console.log('Unique machines:', uniqueMachines);
+          console.log('Unique states:', uniqueStates);
           
           setMachines(uniqueMachines.length > 0 ? uniqueMachines : ['MACH001']);
           setStates(uniqueStates.length > 0 ? uniqueStates : defaultStates);
@@ -76,6 +90,12 @@ const StateChangeSimulator: React.FC = () => {
               }
             }
           }
+        } else {
+          toast({
+            title: "No machines found",
+            description: "No machine data in the database. Try generating mock data.",
+            variant: "default"
+          });
         }
       } catch (error) {
         console.error('Error in fetching machine data:', error);
@@ -93,7 +113,8 @@ const StateChangeSimulator: React.FC = () => {
         event: '*', 
         schema: 'public', 
         table: 'liveData' 
-      }, () => {
+      }, (payload) => {
+        console.log('Real-time update received:', payload);
         // Refresh data when changes occur
         fetchMachines();
       })
@@ -110,6 +131,8 @@ const StateChangeSimulator: React.FC = () => {
       if (!selectedMachine) return;
       
       try {
+        console.log('Fetching current state for machine:', selectedMachine);
+        
         const { data, error } = await supabase
           .from('liveData')
           .select('state')
@@ -121,6 +144,8 @@ const StateChangeSimulator: React.FC = () => {
           console.error('Error fetching machine state:', error);
           return;
         }
+
+        console.log('Current state data:', data);
 
         if (data && data.length > 0 && data[0].state) {
           setCurrentState(data[0].state);
@@ -143,6 +168,12 @@ const StateChangeSimulator: React.FC = () => {
     setIsSimulating(true);
     
     try {
+      console.log('Simulating state change:', {
+        machineId: selectedMachine,
+        previousState: currentState,
+        newState: targetState
+      });
+      
       // Notify about state change
       await notifyMachineStateChange({
         machineId: selectedMachine,
@@ -162,8 +193,19 @@ const StateChangeSimulator: React.FC = () => {
         
       if (error) {
         console.error('Error updating state in database:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update state in database: " + error.message,
+          variant: "destructive"
+        });
         throw error;
       }
+      
+      toast({
+        title: "State Changed",
+        description: `Changed state of ${selectedMachine} from ${currentState} to ${targetState}`,
+        variant: "default"
+      });
       
       // Update current state after simulation
       setCurrentState(targetState);
@@ -175,6 +217,11 @@ const StateChangeSimulator: React.FC = () => {
       }
     } catch (error) {
       console.error('Error simulating state change:', error);
+      toast({
+        title: "Error",
+        description: "Failed to simulate state change",
+        variant: "destructive"
+      });
     } finally {
       setIsSimulating(false);
     }

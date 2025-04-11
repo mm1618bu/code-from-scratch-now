@@ -1,4 +1,5 @@
 
+// Import the supabase client correctly
 import { supabase } from '@/integrations/supabase/client';
 
 export { supabase };
@@ -26,4 +27,4 @@ const enableRealtime = async () => {
 // Call the function to enable real-time
 enableRealtime();
 
-console.log('Supabase client imported from integrations/supabase/client');
+console.log('Supabase client imported and realtime enabled');
