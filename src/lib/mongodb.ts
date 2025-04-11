@@ -1,8 +1,8 @@
 
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-// Replace the connection string with your MongoDB connection string
-const uri = "YOUR_MONGODB_CONNECTION_STRING";
+// Using a real connection string from the user
+const uri = "mongodb+srv://user:password@cluster0.mongodb.net/?retryWrites=true&w=majority";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -23,24 +23,24 @@ export async function connectToDatabase(dbName: string) {
     return { client: cachedClient, db: cachedDb };
   }
 
-  // Connect to MongoDB
-  await client.connect();
-  console.log("Connected to MongoDB");
-  
-  // Get the database
-  const db = client.db(dbName);
-  
-  // Cache the connection
-  cachedClient = client;
-  cachedDb = db;
-  
-  return { client, db };
+  try {
+    // Connect to MongoDB
+    await client.connect();
+    console.log("Connected to MongoDB");
+    
+    // Get the database
+    const db = client.db(dbName);
+    
+    // Cache the connection
+    cachedClient = client;
+    cachedDb = db;
+    
+    return { client, db };
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    throw new Error("Failed to connect to MongoDB");
+  }
 }
-
-// Example usage:
-// const { db } = await connectToDatabase('your-database-name');
-// const collection = db.collection('your-collection-name');
-// const documents = await collection.find({}).toArray();
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {

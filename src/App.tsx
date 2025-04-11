@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Verification from "./pages/Verification";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
+import MongoDB from "./pages/MongoDB";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/mongodb" 
+              element={
+                <ProtectedRoute>
+                  <MongoDB />
                 </ProtectedRoute>
               } 
             />

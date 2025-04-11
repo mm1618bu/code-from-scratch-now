@@ -3,7 +3,8 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Database } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -30,7 +31,7 @@ const Dashboard: React.FC = () => {
         <p className="text-gray-400 mb-8">
           {user?.email}
         </p>
-        <div className="bg-dark-foreground/10 p-6 rounded-lg max-w-md w-full">
+        <div className="bg-dark-foreground/10 p-6 rounded-lg max-w-md w-full mb-6">
           <h2 className="text-white text-lg font-medium mb-3">Your Account</h2>
           <div className="flex flex-col gap-2">
             <div className="flex justify-between">
@@ -50,6 +51,15 @@ const Dashboard: React.FC = () => {
               </span>
             </div>
           </div>
+        </div>
+        
+        <div className="w-full max-w-md">
+          <Link to="/mongodb">
+            <Button className="w-full bg-sage hover:bg-sage/90 flex items-center gap-2">
+              <Database size={18} />
+              View MongoDB Data
+            </Button>
+          </Link>
         </div>
       </div>
 
