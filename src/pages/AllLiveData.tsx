@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -37,6 +36,7 @@ import {
 
 interface LiveDataItem {
   id?: string;
+  _id?: string;
   machineId: string;
   state: string;
   created_at: string;
@@ -47,8 +47,9 @@ interface LiveDataItem {
   total_current: number;
   state_duration: number;
   fault_status: string;
-  fw_version: string;
+  fw_version: number;
   mac: string;
+  hi?: string;
   [key: string]: any;
 }
 
@@ -69,20 +70,18 @@ const AllLiveData: React.FC = () => {
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
   const [currentAlerts, setCurrentAlerts] = useState<AlertItem[]>([]);
-  const itemsPerPage = 10; // Increased from 5 to show more per page
+  const itemsPerPage = 10;
 
-  // Function to fetch data from Supabase
   const fetchLiveData = async () => {
     setLoading(true);
     
     try {
       console.log('Fetching data from Supabase...');
-      // Ensure we're using the correct Supabase client and table
       const { data, error } = await supabase
         .from('liveData')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(100); // Limit to 100 records
+        .limit(100);
       
       if (error) {
         console.error('Supabase error:', error);
@@ -93,29 +92,25 @@ const AllLiveData: React.FC = () => {
         console.log('Fetched data for AllLiveData:', data);
         setLiveData(data as LiveDataItem[]);
         
-        // Check for high current items
         const highCurrentItems = (data as LiveDataItem[]).filter(item => item.total_current >= 15.0);
         
         if (highCurrentItems.length > 0) {
-          // Collect new alerts
           const newAlerts = highCurrentItems.map(item => ({
             machineId: item.machineId,
             value: item.total_current,
             timestamp: new Date(item.created_at).toLocaleString()
           }));
           
-          // Update alerts
           setCurrentAlerts(prev => {
             const combined = [...prev, ...newAlerts];
             const unique = combined.reduce((acc, curr) => {
               acc[curr.machineId] = curr;
               return acc;
-            }, {} as Record<string, any>);
+            }, {});
             
             return Object.values(unique);
           });
           
-          // Update alert count
           setAlertCount(prev => prev + highCurrentItems.length);
           
           toast({
@@ -144,11 +139,9 @@ const AllLiveData: React.FC = () => {
     }
   };
 
-  // Initial data fetch and realtime subscription
   useEffect(() => {
     fetchLiveData();
     
-    // Subscribe to real-time changes
     const channel = supabase
       .channel('public:liveData')
       .on('postgres_changes', { 
@@ -158,7 +151,6 @@ const AllLiveData: React.FC = () => {
       }, (payload) => {
         console.log('Real-time update received for AllLiveData:', payload);
         
-        // Check if payload.new exists and has required properties
         if (payload.new && 
             typeof payload.new === 'object' && 
             'total_current' in payload.new && 
@@ -166,7 +158,6 @@ const AllLiveData: React.FC = () => {
           
           const newData = payload.new as LiveDataItem;
           
-          // Check if the updated data has high total current
           if (newData.total_current >= 15.0) {
             const newAlert = {
               machineId: newData.machineId,
@@ -174,16 +165,13 @@ const AllLiveData: React.FC = () => {
               timestamp: new Date().toLocaleString()
             };
             
-            // Add to alerts
             setCurrentAlerts(prev => {
               const filtered = prev.filter(a => a.machineId !== newAlert.machineId);
               return [...filtered, newAlert];
             });
             
-            // Increment alert count
             setAlertCount(prev => prev + 1);
             
-            // Show toast notification
             toast({
               title: "High Current Alert",
               description: `Machine ${newData.machineId} total current: ${newData.total_current.toFixed(2)}`,
@@ -192,7 +180,7 @@ const AllLiveData: React.FC = () => {
           }
         }
         
-        fetchLiveData(); // Refresh data when changes occur
+        fetchLiveData();
       })
       .subscribe((status) => {
         console.log('Supabase channel status for AllLiveData:', status);
@@ -203,10 +191,8 @@ const AllLiveData: React.FC = () => {
     };
   }, []);
 
-  // Get unique states for the filter
   const uniqueStates = ["all", ...Array.from(new Set(liveData.map(item => item.state)))];
 
-  // Filter data based on selected state
   const filteredData = stateFilter === "all" 
     ? liveData 
     : liveData.filter(item => item.state === stateFilter);
@@ -217,7 +203,6 @@ const AllLiveData: React.FC = () => {
     currentPage * itemsPerPage
   );
 
-  // Reset to first page when filter changes
   React.useEffect(() => {
     setCurrentPage(1);
   }, [stateFilter]);
