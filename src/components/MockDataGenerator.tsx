@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange, notifyTotalCurrentThresholdAlert } from '@/lib/notification';
@@ -46,11 +45,13 @@ const MockDataGenerator = () => {
     const machineId = getRandomItem(MACHINE_IDS);
     
     try {
-      // Get the current state for this machine
+      // Get the current state for this machine to use as previous state
       const { data: currentData } = await supabase
         .from('liveData')
-        .select('state, _id')
+        .select('state')
         .eq('machineId', machineId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       
       const previousState = currentData?.state || getRandomItem(MACHINE_STATES);
@@ -81,62 +82,35 @@ const MockDataGenerator = () => {
         timestamp: currentTimestamp.toISOString()
       };
       
-      // Prepare the data update - with the current timestamp
-      const dataUpdate = {
-        machineId: machineId,
-        state: newState,
-        created_at: currentTimestamp.toISOString(), // Always use current timestamp
-        state_duration: Math.floor(Math.random() * 3600),
-        total_current: totalCurrent,
-        CT_Avg: ctAvg,
-        CT1: ct1,
-        CT2: ct2,
-        CT3: ct3,
-        fw_version: getRandomFloat(1.0, 5.0, 1),
-        fault_status: faultStatus,
-        mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
-        hi: Math.floor(Math.random() * 100).toString()
-      };
+      // Create a fresh timestamp for this database operation
+      const insertTimestamp = new Date();
       
-      let error;
+      // Always insert a new record with a unique ID
+      const { error: insertError } = await supabase
+        .from('liveData')
+        .insert({
+          machineId: machineId,
+          state: newState,
+          created_at: insertTimestamp.toISOString(),
+          state_duration: Math.floor(Math.random() * 3600),
+          total_current: totalCurrent,
+          CT_Avg: ctAvg,
+          CT1: ct1,
+          CT2: ct2,
+          CT3: ct3,
+          fw_version: getRandomFloat(1.0, 5.0, 1),
+          fault_status: faultStatus,
+          mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
+          hi: Math.floor(Math.random() * 100).toString(),
+          _id: uuidv4() // Generate a unique ID for each new record
+        });
       
-      if (currentData && currentData._id) {
-        // Update existing record - Create a NEW timestamp for this operation
-        const updateTimestamp = new Date();
-        console.log(`Updating existing record for machine ${machineId} with ID ${currentData._id} at timestamp ${updateTimestamp.toISOString()}`);
-        
-        // Update dataUpdate with the very latest timestamp
-        dataUpdate.created_at = updateTimestamp.toISOString();
-        
-        const { error: updateError } = await supabase
-          .from('liveData')
-          .update(dataUpdate)
-          .eq('_id', currentData._id);
-          
-        error = updateError;
-      } else {
-        // Insert new record if none exists - Create a NEW timestamp for this operation
-        const insertTimestamp = new Date();
-        console.log(`Creating new record for machine ${machineId} at timestamp ${insertTimestamp.toISOString()}`);
-        
-        // Use the very latest timestamp for insertion
-        const { error: insertError } = await supabase
-          .from('liveData')
-          .insert({
-            ...dataUpdate,
-            created_at: insertTimestamp.toISOString(), // Ensure we use the LATEST timestamp
-            _id: uuidv4() // Generate a unique ID for new records
-          });
-          
-        error = insertError;
+      if (insertError) {
+        console.error('Error inserting new record:', insertError);
+        throw insertError;
       }
       
-      if (error) {
-        console.error('Error updating database:', error);
-        throw error;
-      }
-      
-      console.log(`Database updated for machine ${machineId}: state changed to ${newState} at ${dataUpdate.created_at}`);
+      console.log(`Created new record for machine ${machineId}: state changed to ${newState} at ${insertTimestamp.toISOString()}`);
       
       // Send notifications after successful database update
       notifyMachineStateChange(stateChange);
@@ -150,7 +124,7 @@ const MockDataGenerator = () => {
         notifyTotalCurrentThresholdAlert({
           machineId,
           totalCurrent,
-          timestamp: dataUpdate.created_at
+          timestamp: insertTimestamp.toISOString()
         });
       }
       
