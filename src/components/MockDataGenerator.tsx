@@ -14,7 +14,6 @@ const MockDataGenerator = () => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [intervalId, setIntervalId] = useState<number | null>(null);
-  const [lastTimestamp, setLastTimestamp] = useState(new Date());
 
   // Helper function to get a random item from an array
   const getRandomItem = <T,>(array: T[]): T => {
@@ -39,9 +38,8 @@ const MockDataGenerator = () => {
 
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
-    // Update the timestamp by adding 5 seconds
-    const newTimestamp = new Date(lastTimestamp.getTime() + 5000);
-    setLastTimestamp(newTimestamp);
+    // Create a new timestamp for each record
+    const currentTimestamp = new Date();
     
     // Generate mock data similar to the Python script
     const machineId = getRandomItem(MACHINE_IDS);
@@ -79,14 +77,14 @@ const MockDataGenerator = () => {
         machineId,
         previousState,
         newState,
-        timestamp: newTimestamp.toISOString()
+        timestamp: currentTimestamp.toISOString()
       };
       
       // Prepare the data update
       const dataUpdate = {
         machineId: machineId,
         state: newState,
-        created_at: newTimestamp.toISOString(),
+        created_at: currentTimestamp.toISOString(), // Use current timestamp
         state_duration: Math.floor(Math.random() * 3600),
         total_current: totalCurrent,
         CT_Avg: ctAvg,
@@ -142,7 +140,7 @@ const MockDataGenerator = () => {
         notifyTotalCurrentThresholdAlert({
           machineId,
           totalCurrent,
-          timestamp: newTimestamp.toISOString()
+          timestamp: currentTimestamp.toISOString()
         });
       }
       
