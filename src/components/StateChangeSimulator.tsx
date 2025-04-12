@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -171,6 +170,9 @@ const StateChangeSimulator: React.FC = () => {
     setIsSimulating(true);
     
     try {
+      // Create a new timestamp for this operation
+      const currentTimestamp = new Date();
+      
       console.log('Simulating state change:', {
         machineId: selectedMachine,
         previousState: currentState,
@@ -182,7 +184,7 @@ const StateChangeSimulator: React.FC = () => {
         machineId: selectedMachine,
         previousState: currentState,
         newState: targetState,
-        timestamp: new Date().toISOString()
+        timestamp: currentTimestamp.toISOString()
       });
       
       let error;
@@ -195,7 +197,7 @@ const StateChangeSimulator: React.FC = () => {
           .update({
             machineId: selectedMachine,
             state: targetState,
-            created_at: new Date().toISOString()
+            created_at: currentTimestamp.toISOString()
           })
           .eq('_id', currentRecordId);
           
@@ -208,7 +210,7 @@ const StateChangeSimulator: React.FC = () => {
           .insert({
             machineId: selectedMachine,
             state: targetState,
-            created_at: new Date().toISOString(),
+            created_at: currentTimestamp.toISOString(),
             _id: uuidv4() // Generate a unique ID for new records
           });
           
