@@ -37,7 +37,7 @@ const MachineGenerator = () => {
         }`}
       >
         <span className={`w-3 h-3 rounded-full mr-2 ${isGenerating ? 'bg-white animate-pulse' : 'bg-white'}`}></span>
-        {isGenerating ? 'Stop Machine Generator' : 'Generate Machines Every 15s'}
+        {isGenerating ? 'Stop Machine Generator' : 'Generate 30 Machines Every 20s'}
       </Button>
     </div>
   );
