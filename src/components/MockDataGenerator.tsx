@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange, notifyTotalCurrentThresholdAlert } from '@/lib/notification';
@@ -30,9 +29,9 @@ const MockDataGenerator = () => {
 
   // Helper function to occasionally generate high Total Current values
   const generatePossiblyHighTotalCurrent = (): number => {
-    // 20% chance to generate a value above threshold
-    if (Math.random() < 0.2) {
-      return getRandomFloat(TOTAL_CURRENT_THRESHOLD, TOTAL_CURRENT_THRESHOLD + 10.0);
+    // Increase chance to 50% to generate a value above threshold for testing
+    if (Math.random() < 0.5) {
+      return getRandomFloat(TOTAL_CURRENT_THRESHOLD, TOTAL_CURRENT_THRESHOLD + 15.0);
     }
     // Otherwise generate normal value
     return getRandomFloat(1.5, TOTAL_CURRENT_THRESHOLD - 1.0);
@@ -137,6 +136,9 @@ const MockDataGenerator = () => {
       // Check if Total Current exceeds threshold and send alert notification
       if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {
         console.log(`Total Current threshold exceeded for machine ${machineId}: ${totalCurrent}`);
+        // Explicitly log that we're sending the alert notification
+        console.log(`Sending Total Current alert notification for ${totalCurrent}`);
+        
         notifyTotalCurrentThresholdAlert({
           machineId,
           totalCurrent,

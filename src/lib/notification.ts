@@ -73,8 +73,10 @@ export const sendBrowserNotification = async (
   const hasPermission = await getBrowserNotificationPermission();
   
   if (hasPermission) {
+    console.log('Sending browser notification:', title, options);
     new Notification(title, options);
   } else {
+    console.log('No permission for browser notifications, falling back to toast');
     // Fallback to toast notification if permission not granted
     toast({
       title,
@@ -204,9 +206,6 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
   
   // Send push notification (will fall back to browser notification if not supported)
   await sendPushNotification(alert);
-  
-  // We're skipping email notifications for Total Current alerts
-  // await sendEmailNotification(alert, true);
   
   // Also show a toast notification for immediate visibility in the app
   toast({
