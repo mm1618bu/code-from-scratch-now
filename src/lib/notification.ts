@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,8 +28,8 @@ export const getNotificationPreferences = (): NotificationPreference => {
   if (stored) {
     return JSON.parse(stored);
   }
-  // Default to all enabled
-  return { email: true, browser: true, push: true };
+  // Default to browser notifications only, email disabled
+  return { email: false, browser: true, push: true };
 };
 
 export const setNotificationPreferences = (preferences: NotificationPreference): void => {
@@ -102,20 +103,9 @@ export const sendEmailNotification = async (
   
   try {
     if (isTotalCurrentAlert) {
-      const totalCurrentAlert = data as TotalCurrentAlertNotification;
-      const { error } = await supabase.functions.invoke('send-notification-email', {
-        body: {
-          email: userData.user.email,
-          machineId: totalCurrentAlert.machineId,
-          alertType: 'TOTAL_CURRENT_THRESHOLD',
-          totalCurrent: totalCurrentAlert.totalCurrent,
-          timestamp: totalCurrentAlert.timestamp
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
+      // We are now skipping email notifications for Total Current alerts
+      console.log('Skipping email for Total Current alert as per user preference');
+      return;
     } else {
       const stateChange = data as MachineStateChange;
       const { error } = await supabase.functions.invoke('send-notification-email', {
@@ -201,24 +191,24 @@ export const sendPushNotification = async (alert: TotalCurrentAlertNotification)
 export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
   console.log(`Triggering notification for Total Current alert: ${alert.machineId}, value: ${alert.totalCurrent}`);
   
-  // Send browser notification
+  // Send browser notification with high visibility
   await sendBrowserNotification(
     `ALERT: Machine ${alert.machineId} High Total Current`,
     {
       body: `Total Current value is ${alert.totalCurrent.toFixed(2)}, which exceeds the threshold of 15.0`,
       icon: '/favicon.ico',
       tag: `total-current-alert-${alert.machineId}`,
-      requireInteraction: true,
+      requireInteraction: true, // This makes the notification stay until user interacts with it
     }
   );
   
   // Send push notification (will fall back to browser notification if not supported)
   await sendPushNotification(alert);
   
-  // Send email notification
-  await sendEmailNotification(alert, true);
+  // We're skipping email notifications for Total Current alerts
+  // await sendEmailNotification(alert, true);
   
-  // Also show a toast notification
+  // Also show a toast notification for immediate visibility in the app
   toast({
     title: `High Total Current Alert: Machine ${alert.machineId}`,
     description: `Total Current value (${alert.totalCurrent.toFixed(2)}) exceeds threshold of 15.0`,

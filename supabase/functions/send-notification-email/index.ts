@@ -36,31 +36,24 @@ serve(async (req) => {
 
     console.log(`Sending email notification to ${email} for machine ${machineId}`);
     
-    // In a real implementation, you would use a service like Resend, SendGrid, or other email provider
-    // For now, we'll simulate a successful email send
+    // We'll only handle state change emails here
+    // Total Current alerts will be shown in the browser only
     
     // For demonstration, we're just logging the email content that would be sent
     let emailContent;
     
     if (alertType === 'TOTAL_CURRENT_THRESHOLD') {
-      // Handle Total Current threshold alert
+      // For Total Current alerts, we'll just log them but not actually send emails
+      // as the user wants browser alerts only
       const { totalCurrent } = payload;
       
-      console.log(`Processing Total Current alert for machine ${machineId}, value: ${totalCurrent}`);
+      console.log(`Processing Total Current alert for machine ${machineId}, value: ${totalCurrent} - NOT sending email (browser alerts only)`);
       
+      // We're not sending email for this case
       emailContent = {
         to: email,
-        subject: `URGENT: Machine ${machineId} Total Current Threshold Exceeded`,
-        body: `
-          Total Current Alert for Machine ${machineId}
-          
-          The Total Current value of ${totalCurrent?.toFixed(2) || 'unknown'} has exceeded the threshold of 15.0.
-          Time: ${new Date(timestamp).toLocaleString()}
-          
-          This may indicate an overload condition that requires immediate attention.
-          
-          This is an automated notification. You're receiving this because both push and email notifications are enabled in your preferences.
-        `
+        subject: `[Browser Alert Only] Machine ${machineId} Total Current Threshold Exceeded`,
+        body: `This alert will only be shown in the browser, no email will be sent.`
       };
     } else {
       // Handle state change notification

@@ -69,12 +69,13 @@ const NotificationSettings: React.FC = () => {
     toast({
       title: checked ? "Browser Notifications Enabled" : "Browser Notifications Disabled",
       description: checked 
-        ? "You will now receive browser notifications for machine state changes" 
+        ? "You will now receive browser notifications for machine state changes and Total Current alerts" 
         : "You will no longer receive browser notifications",
     });
   };
 
   const handleEmailToggle = (checked: boolean) => {
+    // Even though we allow toggling this, Total Current alerts will only use browser notifications
     const newPreferences = { ...preferences, email: checked };
     setPreferences(newPreferences);
     setNotificationPreferences(newPreferences);
@@ -82,7 +83,7 @@ const NotificationSettings: React.FC = () => {
     toast({
       title: checked ? "Email Notifications Enabled" : "Email Notifications Disabled",
       description: checked 
-        ? "You will now receive email notifications for machine state changes" 
+        ? "You will now receive email notifications for machine state changes (Total Current alerts will still only show in browser)" 
         : "You will no longer receive email notifications",
     });
   };
@@ -95,8 +96,15 @@ const NotificationSettings: React.FC = () => {
       if (granted) {
         toast({
           title: "Permission Granted",
-          description: "You will now receive browser notifications for important events.",
+          description: "You will now receive browser notifications for important events, including Total Current alerts.",
         });
+        
+        // Auto-enable browser notifications once permission is granted
+        if (!preferences.browser) {
+          const newPreferences = { ...preferences, browser: true };
+          setPreferences(newPreferences);
+          setNotificationPreferences(newPreferences);
+        }
       } else {
         toast({
           title: "Permission Denied",
@@ -115,7 +123,7 @@ const NotificationSettings: React.FC = () => {
           Notification Settings
         </CardTitle>
         <CardDescription className="text-gray-400">
-          Configure how you want to be notified about machine state changes
+          Configure how you want to be notified about machine state changes and Total Current alerts
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -157,6 +165,7 @@ const NotificationSettings: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Mail className="h-4 w-4 text-gray-400" />
             <Label htmlFor="email-notifications" className="text-white">Email Notifications</Label>
+            <span className="text-xs text-gray-500">(State changes only)</span>
           </div>
           <Switch
             id="email-notifications"
@@ -165,6 +174,14 @@ const NotificationSettings: React.FC = () => {
             className="data-[state=checked]:bg-sage"
           />
         </div>
+        
+        <Alert className="bg-blue-900/20 border-blue-900/50 text-blue-400 mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Total Current Alerts</AlertTitle>
+          <AlertDescription>
+            Total Current alerts (when value exceeds 15.00) will only be shown as browser notifications, not sent by email.
+          </AlertDescription>
+        </Alert>
       </CardContent>
       <CardFooter className="flex justify-between">
         {browserSupported && permissionStatus !== 'granted' && (
