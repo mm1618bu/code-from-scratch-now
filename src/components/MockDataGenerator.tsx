@@ -39,7 +39,7 @@ const MockDataGenerator = () => {
 
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
-    // Create a fresh timestamp for THIS SPECIFIC record
+    // Generate a new timestamp at the exact moment this function runs
     const currentTimestamp = new Date();
     
     // Generate mock data similar to the Python script
@@ -81,11 +81,11 @@ const MockDataGenerator = () => {
         timestamp: currentTimestamp.toISOString()
       };
       
-      // Prepare the data update - important to use the fresh timestamp
+      // Prepare the data update - with the current timestamp
       const dataUpdate = {
         machineId: machineId,
         state: newState,
-        created_at: currentTimestamp.toISOString(), // Use current timestamp
+        created_at: currentTimestamp.toISOString(), // Always use current timestamp
         state_duration: Math.floor(Math.random() * 3600),
         total_current: totalCurrent,
         CT_Avg: ctAvg,
@@ -101,8 +101,13 @@ const MockDataGenerator = () => {
       let error;
       
       if (currentData && currentData._id) {
-        // Update existing record
-        console.log(`Updating existing record for machine ${machineId} with ID ${currentData._id} at timestamp ${currentTimestamp.toISOString()}`);
+        // Update existing record - Create a NEW timestamp for this operation
+        const updateTimestamp = new Date();
+        console.log(`Updating existing record for machine ${machineId} with ID ${currentData._id} at timestamp ${updateTimestamp.toISOString()}`);
+        
+        // Update dataUpdate with the very latest timestamp
+        dataUpdate.created_at = updateTimestamp.toISOString();
+        
         const { error: updateError } = await supabase
           .from('liveData')
           .update(dataUpdate)
@@ -110,12 +115,16 @@ const MockDataGenerator = () => {
           
         error = updateError;
       } else {
-        // Insert new record if none exists
-        console.log(`Creating new record for machine ${machineId} at timestamp ${currentTimestamp.toISOString()}`);
+        // Insert new record if none exists - Create a NEW timestamp for this operation
+        const insertTimestamp = new Date();
+        console.log(`Creating new record for machine ${machineId} at timestamp ${insertTimestamp.toISOString()}`);
+        
+        // Use the very latest timestamp for insertion
         const { error: insertError } = await supabase
           .from('liveData')
           .insert({
             ...dataUpdate,
+            created_at: insertTimestamp.toISOString(), // Ensure we use the LATEST timestamp
             _id: uuidv4() // Generate a unique ID for new records
           });
           
@@ -127,7 +136,7 @@ const MockDataGenerator = () => {
         throw error;
       }
       
-      console.log(`Database updated for machine ${machineId}: state changed to ${newState} at ${currentTimestamp.toISOString()}`);
+      console.log(`Database updated for machine ${machineId}: state changed to ${newState} at ${dataUpdate.created_at}`);
       
       // Send notifications after successful database update
       notifyMachineStateChange(stateChange);
@@ -141,7 +150,7 @@ const MockDataGenerator = () => {
         notifyTotalCurrentThresholdAlert({
           machineId,
           totalCurrent,
-          timestamp: currentTimestamp.toISOString()
+          timestamp: dataUpdate.created_at
         });
       }
       

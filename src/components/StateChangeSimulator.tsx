@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -170,14 +171,14 @@ const StateChangeSimulator: React.FC = () => {
     setIsSimulating(true);
     
     try {
-      // Create a fresh timestamp for this specific operation
-      const currentTimestamp = new Date();
+      // Generate a brand new timestamp at the exact moment of simulation
+      const simulationTimestamp = new Date();
       
       console.log('Simulating state change:', {
         machineId: selectedMachine,
         previousState: currentState,
         newState: targetState,
-        timestamp: currentTimestamp.toISOString()
+        timestamp: simulationTimestamp.toISOString()
       });
       
       // Notify about state change
@@ -185,33 +186,37 @@ const StateChangeSimulator: React.FC = () => {
         machineId: selectedMachine,
         previousState: currentState,
         newState: targetState,
-        timestamp: currentTimestamp.toISOString()
+        timestamp: simulationTimestamp.toISOString()
       });
       
       let error;
       
       if (currentRecordId) {
-        // Update existing record with the fresh timestamp
-        console.log(`Updating existing record for machine ${selectedMachine} with ID ${currentRecordId} at timestamp ${currentTimestamp.toISOString()}`);
+        // Create a fresh timestamp for this database update operation
+        const updateTimestamp = new Date();
+        console.log(`Updating existing record for machine ${selectedMachine} with ID ${currentRecordId} at timestamp ${updateTimestamp.toISOString()}`);
+        
         const { error: updateError } = await supabase
           .from('liveData')
           .update({
             machineId: selectedMachine,
             state: targetState,
-            created_at: currentTimestamp.toISOString() // Using the fresh timestamp
+            created_at: updateTimestamp.toISOString() // Using a fresh timestamp
           })
           .eq('_id', currentRecordId);
           
         error = updateError;
       } else {
-        // Insert new record with the fresh timestamp
-        console.log(`Creating new record for machine ${selectedMachine} at timestamp ${currentTimestamp.toISOString()}`);
+        // Create a fresh timestamp for this database insert operation
+        const insertTimestamp = new Date();
+        console.log(`Creating new record for machine ${selectedMachine} at timestamp ${insertTimestamp.toISOString()}`);
+        
         const { error: insertError } = await supabase
           .from('liveData')
           .insert({
             machineId: selectedMachine,
             state: targetState,
-            created_at: currentTimestamp.toISOString(), // Using the fresh timestamp
+            created_at: insertTimestamp.toISOString(), // Using a fresh timestamp
             _id: uuidv4() // Generate a unique ID for new records
           });
           
