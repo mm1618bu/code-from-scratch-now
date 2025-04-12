@@ -55,12 +55,12 @@ export const useMachineGenerator = () => {
         description: "No longer generating new machines"
       });
     } else {
-      // Start generation - every 15 minutes (900000 ms)
-      const id = setInterval(addNewMachine, 900000) as unknown as number;
+      // Start generation - every 15 seconds (15000 ms)
+      const id = setInterval(addNewMachine, 15000) as unknown as number;
       intervalRef.current = id;
       toast({
         title: "Machine Generation Started",
-        description: "Generating a new machine every 15 minutes"
+        description: "Generating a new machine every 15 seconds"
       });
       // Generate one immediately
       addNewMachine();
