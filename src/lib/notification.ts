@@ -10,9 +10,9 @@ export interface MachineStateChange {
   timestamp: string;
 }
 
-export interface CTAlertNotification {
+export interface TotalCurrentAlertNotification {
   machineId: string;
-  ctAvg: number;
+  totalCurrent: number;
   timestamp: string;
 }
 
@@ -84,8 +84,8 @@ export const sendBrowserNotification = async (
 
 // Request to send an email notification via Supabase edge function
 export const sendEmailNotification = async (
-  data: MachineStateChange | CTAlertNotification,
-  isCTAlert: boolean = false
+  data: MachineStateChange | TotalCurrentAlertNotification,
+  isTotalCurrentAlert: boolean = false
 ): Promise<void> => {
   const preferences = getNotificationPreferences();
   if (!preferences.email) {
@@ -101,15 +101,15 @@ export const sendEmailNotification = async (
   }
   
   try {
-    if (isCTAlert) {
-      const ctAlert = data as CTAlertNotification;
+    if (isTotalCurrentAlert) {
+      const totalCurrentAlert = data as TotalCurrentAlertNotification;
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
           email: userData.user.email,
-          machineId: ctAlert.machineId,
-          alertType: 'CT_AVG_THRESHOLD',
-          ctAvg: ctAlert.ctAvg,
-          timestamp: ctAlert.timestamp
+          machineId: totalCurrentAlert.machineId,
+          alertType: 'TOTAL_CURRENT_THRESHOLD',
+          totalCurrent: totalCurrentAlert.totalCurrent,
+          timestamp: totalCurrentAlert.timestamp
         }
       });
       
@@ -144,26 +144,26 @@ export const sendEmailNotification = async (
   }
 };
 
-// Handle CT Average threshold alert
-export const notifyCTAvgThresholdAlert = async (ctAlert: CTAlertNotification): Promise<void> => {
+// Handle Total Current threshold alert
+export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
   // Send browser notification
   await sendBrowserNotification(
-    `ALERT: Machine ${ctAlert.machineId} High CT Average`,
+    `ALERT: Machine ${alert.machineId} High Total Current`,
     {
-      body: `CT Average value is ${ctAlert.ctAvg.toFixed(2)}, which exceeds the threshold of 15.0`,
+      body: `Total Current value is ${alert.totalCurrent.toFixed(2)}, which exceeds the threshold of 15.0`,
       icon: '/favicon.ico',
-      tag: `ct-avg-alert-${ctAlert.machineId}`,
+      tag: `total-current-alert-${alert.machineId}`,
       requireInteraction: true,
     }
   );
   
   // Send email notification
-  await sendEmailNotification(ctAlert, true);
+  await sendEmailNotification(alert, true);
   
   // Also show a toast notification
   toast({
-    title: `High CT Average Alert: Machine ${ctAlert.machineId}`,
-    description: `CT Average value (${ctAlert.ctAvg.toFixed(2)}) exceeds threshold of 15.0`,
+    title: `High Total Current Alert: Machine ${alert.machineId}`,
+    description: `Total Current value (${alert.totalCurrent.toFixed(2)}) exceeds threshold of 15.0`,
     variant: 'destructive',
   });
 };

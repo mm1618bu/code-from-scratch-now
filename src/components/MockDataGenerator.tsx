@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { notifyMachineStateChange, notifyCTAvgThresholdAlert } from '@/lib/notification';
+import { notifyMachineStateChange, notifyTotalCurrentThresholdAlert } from '@/lib/notification';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby'];
 const MACHINE_IDS = ['MACH001', 'MACH002', 'MACH003', 'MACH004', 'MACH005'];
 const FAULT_STATUSES = ['fault_detected', 'normal', 'warning', 'critical'];
-const CT_AVG_THRESHOLD = 15.0; // Threshold for CT_Avg alert
+const TOTAL_CURRENT_THRESHOLD = 15.0; // Threshold for Total Current alert
 
 const MockDataGenerator = () => {
   const { toast } = useToast();
@@ -27,14 +27,14 @@ const MockDataGenerator = () => {
     return parseFloat(value.toFixed(precision));
   };
 
-  // Helper function to occasionally generate high CT_Avg values
-  const generatePossiblyHighCTAvg = (): number => {
+  // Helper function to occasionally generate high Total Current values
+  const generatePossiblyHighTotalCurrent = (): number => {
     // 20% chance to generate a value above threshold
     if (Math.random() < 0.2) {
-      return getRandomFloat(CT_AVG_THRESHOLD, CT_AVG_THRESHOLD + 10.0);
+      return getRandomFloat(TOTAL_CURRENT_THRESHOLD, TOTAL_CURRENT_THRESHOLD + 10.0);
     }
     // Otherwise generate normal value
-    return getRandomFloat(0.5, CT_AVG_THRESHOLD - 1.0);
+    return getRandomFloat(1.5, TOTAL_CURRENT_THRESHOLD - 1.0);
   };
 
   // Generate a simulated state change and update the database
@@ -67,10 +67,11 @@ const MockDataGenerator = () => {
       const ct2 = getRandomFloat(0.5, 6.0);
       const ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
       
-      // Use our helper function that might generate high values
-      const ctAvg = generatePossiblyHighCTAvg();
+      const ctAvg = getRandomFloat(0.5, 15.0); // Keep CT_Avg within normal range
       
-      const totalCurrent = getRandomFloat(1.5, 30.0);
+      // Use our helper function that might generate high values for Total Current
+      const totalCurrent = generatePossiblyHighTotalCurrent();
+      
       const faultStatus = getRandomItem(FAULT_STATUSES);
       
       // Create state change object for notification
@@ -132,12 +133,12 @@ const MockDataGenerator = () => {
       // Send notifications after successful database update
       notifyMachineStateChange(stateChange);
       
-      // Check if CT_Avg exceeds threshold and send alert notification
-      if (ctAvg > CT_AVG_THRESHOLD) {
-        console.log(`CT_Avg threshold exceeded for machine ${machineId}: ${ctAvg}`);
-        notifyCTAvgThresholdAlert({
+      // Check if Total Current exceeds threshold and send alert notification
+      if (totalCurrent > TOTAL_CURRENT_THRESHOLD) {
+        console.log(`Total Current threshold exceeded for machine ${machineId}: ${totalCurrent}`);
+        notifyTotalCurrentThresholdAlert({
           machineId,
-          ctAvg,
+          totalCurrent,
           timestamp: newTimestamp.toISOString()
         });
       }

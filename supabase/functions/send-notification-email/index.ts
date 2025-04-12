@@ -13,7 +13,7 @@ interface EmailPayload {
   newState?: string;
   timestamp: string;
   alertType?: string;
-  ctAvg?: number;
+  totalCurrent?: number;
 }
 
 serve(async (req) => {
@@ -42,17 +42,17 @@ serve(async (req) => {
     // For demonstration, we're just logging the email content that would be sent
     let emailContent;
     
-    if (alertType === 'CT_AVG_THRESHOLD') {
-      // Handle CT_Avg threshold alert
-      const { ctAvg } = payload;
+    if (alertType === 'TOTAL_CURRENT_THRESHOLD') {
+      // Handle Total Current threshold alert
+      const { totalCurrent } = payload;
       
       emailContent = {
         to: email,
-        subject: `ALERT: Machine ${machineId} CT Average Threshold Exceeded`,
+        subject: `ALERT: Machine ${machineId} Total Current Threshold Exceeded`,
         body: `
-          CT Average Alert for Machine ${machineId}
+          Total Current Alert for Machine ${machineId}
           
-          The CT Average value of ${ctAvg?.toFixed(2) || 'unknown'} has exceeded the threshold of 15.0.
+          The Total Current value of ${totalCurrent?.toFixed(2) || 'unknown'} has exceeded the threshold of 15.0.
           Time: ${new Date(timestamp).toLocaleString()}
           
           This may indicate an overload condition that requires immediate attention.
