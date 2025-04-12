@@ -42,21 +42,22 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
           <TableHead className="text-gray-400 whitespace-nowrap">FW Version</TableHead>
           <TableHead className="text-gray-400 whitespace-nowrap">MAC Address</TableHead>
           <TableHead className="text-gray-400 whitespace-nowrap">Created At</TableHead>
+          <TableHead className="text-gray-400 whitespace-nowrap">Record ID</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {loading ? (
           <TableRow>
-            <TableCell colSpan={12} className="text-center py-8">
+            <TableCell colSpan={13} className="text-center py-8">
               <div className="flex justify-center">
                 <RefreshCw className="h-8 w-8 animate-spin text-sage" />
               </div>
             </TableCell>
           </TableRow>
         ) : currentData.length > 0 ? (
-          currentData.map((item) => (
+          currentData.map((item, index) => (
             <TableRow 
-              key={`${item.machineId}-${item.created_at}`} 
+              key={item._id || `${item.machineId}-${item.created_at}-${index}`} 
               className={`border-b border-dark-foreground/10 hover:bg-dark-foreground/5 ${
                 item.total_current >= 15.0 ? 'bg-red-900/20' : ''
               }`}
@@ -86,11 +87,14 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
               <TableCell className="text-gray-300 whitespace-nowrap">
                 {new Date(item.created_at).toLocaleString()}
               </TableCell>
+              <TableCell className="text-gray-300 font-mono text-xs truncate max-w-[100px]">
+                {item._id}
+              </TableCell>
             </TableRow>
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={12} className="text-center py-8 text-gray-400">
+            <TableCell colSpan={13} className="text-center py-8 text-gray-400">
               {stateFilter === "all" ? "No data available in Supabase" : "No data matches the selected filter"}
             </TableCell>
           </TableRow>

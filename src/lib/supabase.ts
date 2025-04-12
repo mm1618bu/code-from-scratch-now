@@ -7,18 +7,23 @@ export { supabase };
 // Enable real-time channel
 const enableRealtime = async () => {
   try {
-    // Enable the realtime subscription for the liveData table
-    await supabase.channel('public:liveData')
+    // Add logging to verify realtime setup
+    console.log('Setting up realtime subscription for liveData table...');
+    
+    // Configure the realtime channel with more specific options
+    const channel = supabase.channel('public:liveData')
       .on('postgres_changes', { 
-        event: '*', 
+        event: '*',  // Listen for all events
         schema: 'public', 
         table: 'liveData' 
       }, payload => {
-        console.log('Change received!', payload);
+        console.log('Realtime change received:', payload);
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
     
-    console.log('Realtime enabled for liveData table');
+    console.log('Realtime enabled for liveData table with channel:', channel);
   } catch (error) {
     console.error('Error enabling realtime:', error);
   }

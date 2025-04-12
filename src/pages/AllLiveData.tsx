@@ -4,7 +4,7 @@ import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Database } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLiveData } from '@/hooks/useLiveData';
 import { getStateColor } from '@/utils/stateColors';
@@ -31,7 +31,9 @@ const AllLiveData: React.FC = () => {
     fetchLiveData,
     uniqueStates,
     totalPages,
-    currentData
+    currentData,
+    filteredData,
+    liveData
   } = useLiveData();
 
   const handleRefreshData = () => {
@@ -67,11 +69,22 @@ const AllLiveData: React.FC = () => {
         
         <div className="bg-dark-foreground/10 p-6 rounded-lg">
           <div className="p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg mb-6">
-            <div className="flex items-start">
+            <div className="flex justify-between items-start">
               <div>
                 <p className="text-gray-300 text-sm">
                   Live Data from Supabase
                 </p>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-sage font-semibold">
+                  {liveData.length} Total Records
+                </span>
+                <span className="text-xs text-gray-400">
+                  {filteredData.length} Records Filtered
+                </span>
+                <span className="text-xs text-gray-400">
+                  Displaying {currentData.length} Records on Page {currentPage}
+                </span>
               </div>
             </div>
           </div>

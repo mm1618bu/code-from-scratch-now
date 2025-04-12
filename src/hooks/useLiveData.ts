@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +25,7 @@ export const useLiveData = () => {
         .from('liveData')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(500);
       
       if (error) {
         console.error('Supabase error:', error);
@@ -34,7 +33,7 @@ export const useLiveData = () => {
       }
       
       if (data) {
-        console.log('Fetched data for AllLiveData:', data);
+        console.log(`Fetched ${data.length} records for AllLiveData:`, data);
         setLiveData(data as LiveDataItem[]);
         
         const highCurrentItems = (data as LiveDataItem[]).filter(item => item.total_current >= 15.0);
@@ -58,7 +57,6 @@ export const useLiveData = () => {
           
           setAlertCount(prev => prev + highCurrentItems.length);
           
-          // Trigger notifications for high current items
           highCurrentItems.forEach(item => {
             notifyTotalCurrentThresholdAlert({
               machineId: item.machineId,
@@ -67,7 +65,6 @@ export const useLiveData = () => {
             });
           });
           
-          // Only show toast for high current items
           toast({
             title: "High Current Alert",
             description: `${highCurrentItems.length} machine(s) have total current exceeding threshold`,
@@ -77,7 +74,7 @@ export const useLiveData = () => {
         
         toast({
           title: "Data Refreshed",
-          description: `Loaded ${data.length} records from Supabase (max 100)`,
+          description: `Loaded ${data.length} records from Supabase (max 500)`,
         });
       } else {
         console.log('No data returned from Supabase');
@@ -104,13 +101,15 @@ export const useLiveData = () => {
     fetchLiveData();
     
     const channel = supabase
-      .channel('public:liveData')
+      .channel('public:liveData:hook')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'liveData' 
       }, (payload) => {
-        console.log('Real-time update received for AllLiveData:', payload);
+        console.log('Real-time update received in useLiveData hook:', payload);
+        
+        fetchLiveData();
         
         if (payload.new && 
             typeof payload.new === 'object' && 
@@ -119,7 +118,6 @@ export const useLiveData = () => {
           
           const newData = payload.new as LiveDataItem;
           
-          // Only show notifications for items with total_current over 15.0
           if (newData.total_current >= 15.0) {
             const newAlert = {
               machineId: newData.machineId,
@@ -134,14 +132,12 @@ export const useLiveData = () => {
             
             setAlertCount(prev => prev + 1);
             
-            // Trigger notification for this high current event
             notifyTotalCurrentThresholdAlert({
               machineId: newData.machineId,
               totalCurrent: newData.total_current,
               timestamp: new Date(newData.created_at).toISOString()
             });
             
-            // Show toast for high current
             toast({
               title: "High Current Alert",
               description: `Machine ${newData.machineId} total current: ${newData.total_current.toFixed(2)}`,
@@ -149,7 +145,6 @@ export const useLiveData = () => {
             });
           }
           
-          // For state changes, only notify if total_current is over 15.0
           if ('state' in newData && 
               newData.total_current >= 15.0 && 
               payload.old && 
@@ -157,7 +152,6 @@ export const useLiveData = () => {
               'state' in payload.old && 
               payload.old.state !== newData.state) {
             
-            // Trigger a state change notification with high current
             notifyMachineStateChange({
               machineId: newData.machineId,
               previousState: payload.old.state as string,
@@ -173,11 +167,9 @@ export const useLiveData = () => {
             });
           }
         }
-        
-        fetchLiveData();
       })
       .subscribe((status) => {
-        console.log('Supabase channel status for AllLiveData:', status);
+        console.log('Realtime subscription status in useLiveData:', status);
       });
       
     return () => {
