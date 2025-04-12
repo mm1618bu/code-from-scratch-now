@@ -57,6 +57,7 @@ export const useLiveData = () => {
           
           setAlertCount(prev => prev + highCurrentItems.length);
           
+          // Only show toast for high current items
           toast({
             title: "High Current Alert",
             description: `${highCurrentItems.length} machine(s) have total current exceeding threshold`,
@@ -108,6 +109,7 @@ export const useLiveData = () => {
           
           const newData = payload.new as LiveDataItem;
           
+          // Only show notifications for items with total_current over 15.0
           if (newData.total_current >= 15.0) {
             const newAlert = {
               machineId: newData.machineId,
@@ -122,9 +124,25 @@ export const useLiveData = () => {
             
             setAlertCount(prev => prev + 1);
             
+            // Show toast for high current
             toast({
               title: "High Current Alert",
               description: `Machine ${newData.machineId} total current: ${newData.total_current.toFixed(2)}`,
+              variant: "destructive",
+            });
+          }
+          
+          // For state changes, only notify if total_current is over 15.0
+          if ('state' in newData && 
+              newData.total_current >= 15.0 && 
+              payload.old && 
+              typeof payload.old === 'object' && 
+              'state' in payload.old && 
+              payload.old.state !== newData.state) {
+            
+            toast({
+              title: `State Change for Machine ${newData.machineId}`,
+              description: `State changed from ${payload.old.state} to ${newData.state}`,
               variant: "destructive",
             });
           }

@@ -8,6 +8,7 @@ export interface MachineStateChange {
   previousState: string;
   newState: string;
   timestamp: string;
+  totalCurrent?: number;
 }
 
 export interface TotalCurrentAlertNotification {
@@ -105,18 +106,45 @@ export const sendEmailNotification = async (
   
   try {
     if (isTotalCurrentAlert) {
-      // We are now skipping email notifications for Total Current alerts
-      console.log('Skipping email for Total Current alert as per user preference');
-      return;
+      const totalCurrentAlert = data as TotalCurrentAlertNotification;
+      
+      // Only send if total current is over threshold
+      if (totalCurrentAlert.totalCurrent < 15.0) {
+        console.log('Skipping email notification as total current is below threshold');
+        return;
+      }
+      
+      const { error } = await supabase.functions.invoke('send-notification-email', {
+        body: {
+          email: userData.user.email,
+          machineId: totalCurrentAlert.machineId,
+          timestamp: totalCurrentAlert.timestamp,
+          alertType: 'TOTAL_CURRENT_THRESHOLD',
+          totalCurrent: totalCurrentAlert.totalCurrent
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
     } else {
       const stateChange = data as MachineStateChange;
+      
+      // Skip if no total current is provided or it's below threshold
+      if (!stateChange.totalCurrent || stateChange.totalCurrent < 15.0) {
+        console.log('Skipping state change email as total current is below threshold');
+        return;
+      }
+      
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
           email: userData.user.email,
           machineId: stateChange.machineId,
           previousState: stateChange.previousState,
           newState: stateChange.newState,
-          timestamp: stateChange.timestamp
+          timestamp: stateChange.timestamp,
+          alertType: 'STATE_CHANGE',
+          totalCurrent: stateChange.totalCurrent
         }
       });
       
@@ -143,6 +171,12 @@ export const isPushNotificationSupported = (): boolean => {
 
 // Send a push notification for Total Current threshold alert
 export const sendPushNotification = async (alert: TotalCurrentAlertNotification): Promise<void> => {
+  // Skip if total current is below threshold
+  if (alert.totalCurrent < 15.0) {
+    console.log('Skipping push notification as total current is below threshold');
+    return;
+  }
+  
   const preferences = getNotificationPreferences();
   
   if (!preferences.push) {
@@ -191,13 +225,18 @@ export const sendPushNotification = async (alert: TotalCurrentAlertNotification)
 
 // Handle Total Current threshold alert
 export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
+  // Skip if total current is below threshold
+  if (alert.totalCurrent < 15.0) {
+    console.log('Skipping total current alert notification as value is below threshold');
+    return;
+  }
+  
   console.log(`Triggering notification for Total Current alert: ${alert.machineId}, value: ${alert.totalCurrent}`);
   
-  // Log to console only
-  console.log(`CONSOLE ONLY: Total Current Alert for Machine ${alert.machineId}: ${alert.totalCurrent.toFixed(2)} exceeds threshold of 15.0`);
+  // Log to console
+  console.log(`Total Current Alert for Machine ${alert.machineId}: ${alert.totalCurrent.toFixed(2)} exceeds threshold of 15.0`);
   
-  // No browser notifications, no push notifications, no email notifications
-  // Just show a toast notification for immediate visibility in the app
+  // Show a toast notification
   toast({
     title: `High Total Current Alert: Machine ${alert.machineId}`,
     description: `Total Current value (${alert.totalCurrent.toFixed(2)}) exceeds threshold of 15.0`,
@@ -207,14 +246,21 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
 
 // Handle machine state change notification
 export const notifyMachineStateChange = async (stateChange: MachineStateChange): Promise<void> => {
+  // Skip if no total current is provided or it's below threshold
+  if (!stateChange.totalCurrent || stateChange.totalCurrent < 15.0) {
+    console.log('Skipping state change notification as total current is below threshold');
+    return;
+  }
+  
   // Send browser notification
   const hasChangedToError = stateChange.newState === 'error';
   const urgencyLevel = hasChangedToError ? 'Critical' : 'Info';
   
   await sendBrowserNotification(
-    `${urgencyLevel}: Machine ${stateChange.machineId} State Change`,
+    `${urgencyLevel}: Machine ${stateChange.machineId} State Change (High Current)`,
     {
-      body: `State changed from ${stateChange.previousState} to ${stateChange.newState}`,
+      body: `State changed from ${stateChange.previousState} to ${stateChange.newState}
+Total Current: ${stateChange.totalCurrent.toFixed(2)}`,
       icon: '/favicon.ico',
       tag: `machine-state-${stateChange.machineId}`,
       requireInteraction: hasChangedToError,
@@ -226,8 +272,9 @@ export const notifyMachineStateChange = async (stateChange: MachineStateChange):
   
   // Also show a toast notification
   toast({
-    title: `Machine ${stateChange.machineId} State Change`,
-    description: `State changed from ${stateChange.previousState} to ${stateChange.newState}`,
+    title: `Machine ${stateChange.machineId} State Change (High Current)`,
+    description: `State changed from ${stateChange.previousState} to ${stateChange.newState}
+Total Current: ${stateChange.totalCurrent.toFixed(2)}`,
     variant: hasChangedToError ? 'destructive' : 'default',
   });
 };
