@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import {
   TableRow
 } from '@/components/ui/table';
 
-// Define interfaces for our data types
 interface LiveDataItem {
   _id: string;
   machineId: string;
@@ -26,7 +24,7 @@ interface LiveDataItem {
   CT_Avg: number;
   total_current: number;
   fault_status: string;
-  [key: string]: any; // For other possible properties
+  [key: string]: any;
 }
 
 interface AlertItem {
@@ -51,7 +49,6 @@ const LiveData: React.FC = () => {
     try {
       console.log('Fetching live data from Supabase...');
       
-      // Use the direct Supabase client import and limit to 5 records
       const { data, error } = await supabase
         .from('liveData')
         .select('*')
@@ -67,22 +64,17 @@ const LiveData: React.FC = () => {
         console.log('Fetched data:', data);
         setLiveData(data as LiveDataItem[]);
         
-        // Check for any total current values exceeding threshold
         const highCurrentItems = (data as LiveDataItem[]).filter(item => item.total_current >= 15.0);
         
         if (highCurrentItems.length > 0) {
-          // Collect new alerts
           const newAlerts = highCurrentItems.map(item => ({
             machineId: item.machineId,
             value: item.total_current,
             timestamp: new Date(item.created_at).toLocaleString()
           }));
           
-          // Update alerts
           setCurrentAlerts(prev => {
-            // Combine previous alerts with new ones, avoiding duplicates
             const combined = [...prev, ...newAlerts];
-            // Remove duplicates by machine ID (keeping the most recent)
             const unique = combined.reduce((acc, curr) => {
               acc[curr.machineId] = curr;
               return acc;
@@ -91,10 +83,8 @@ const LiveData: React.FC = () => {
             return Object.values(unique);
           });
           
-          // Update alert count
           setAlertCount(prev => prev + highCurrentItems.length);
           
-          // Notify user of new high current alerts
           toast({
             title: "High Current Alert",
             description: `${highCurrentItems.length} machine(s) have total current exceeding threshold`,
@@ -128,7 +118,6 @@ const LiveData: React.FC = () => {
   useEffect(() => {
     fetchLiveData();
     
-    // Subscribe to real-time changes
     const channel = supabase
       .channel('public:liveData')
       .on('postgres_changes', { 
@@ -138,7 +127,6 @@ const LiveData: React.FC = () => {
       }, (payload) => {
         console.log('Real-time update received:', payload);
         
-        // Check if payload.new exists and has the required properties
         if (payload.new && 
             typeof payload.new === 'object' && 
             'total_current' in payload.new && 
@@ -146,7 +134,6 @@ const LiveData: React.FC = () => {
           
           const newData = payload.new as LiveDataItem;
           
-          // Check if the updated data has high total current
           if (newData.total_current >= 15.0) {
             const newAlert = {
               machineId: newData.machineId,
@@ -154,16 +141,13 @@ const LiveData: React.FC = () => {
               timestamp: new Date().toLocaleString()
             };
             
-            // Add to alerts
             setCurrentAlerts(prev => {
               const filtered = prev.filter(a => a.machineId !== newAlert.machineId);
               return [...filtered, newAlert];
             });
             
-            // Increment alert count
             setAlertCount(prev => prev + 1);
             
-            // Show toast notification
             toast({
               title: "High Current Alert",
               description: `Machine ${newData.machineId} total current: ${newData.total_current.toFixed(2)}`,
@@ -172,7 +156,7 @@ const LiveData: React.FC = () => {
           }
         }
         
-        fetchLiveData(); // Refresh data when changes occur
+        fetchLiveData();
       })
       .subscribe((status) => {
         console.log('Supabase channel status:', status);
@@ -183,7 +167,6 @@ const LiveData: React.FC = () => {
     };
   }, []);
 
-  // Clear alerts
   const clearAlerts = () => {
     setCurrentAlerts([]);
     setAlertCount(0);
