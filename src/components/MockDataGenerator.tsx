@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Define machine states for random selection
 const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby'];
-const MACHINE_IDS = ['MACH001', 'MACH002', 'MACH003', 'MACH004', 'MACH005'];
+const MACHINE_IDS = ['MACH001', 'MACH002', 'MACH003', 'MACH004', 'MACH005', 'MACH006', 'MACH007', 'MACH008'];
 const FAULT_STATUSES = ['fault_detected', 'normal', 'warning', 'critical'];
 const TOTAL_CURRENT_THRESHOLD = 15.0; // Threshold for Total Current alert
 
