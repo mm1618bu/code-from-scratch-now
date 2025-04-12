@@ -42,6 +42,48 @@ export const useMachineGenerator = () => {
     }
   };
 
+  // Add multiple machines at once
+  const addMultipleMachines = async (count: number) => {
+    try {
+      console.log(`Generating ${count} new machines...`);
+      
+      // Create an array to hold all machine data objects
+      const machineDataArray = [];
+      
+      // Generate the specified number of machines
+      for (let i = 0; i < count; i++) {
+        const newMachineData = await generateNewMachineData();
+        machineDataArray.push(newMachineData);
+      }
+      
+      // Insert all machines at once
+      console.log(`Adding ${count} new machines to database`);
+      const { error } = await supabase
+        .from('liveData')
+        .insert(machineDataArray);
+      
+      if (error) {
+        console.error('Error inserting multiple machines:', error);
+        throw error;
+      }
+      
+      toast({
+        title: "Multiple Machines Added",
+        description: `Generated ${count} new machines added to the system`,
+      });
+      
+      return machineDataArray;
+    } catch (error) {
+      console.error('Failed to add multiple machines:', error);
+      toast({
+        title: "Error Adding Machines",
+        description: "Failed to add multiple machines to the database",
+        variant: "destructive"
+      });
+      return [];
+    }
+  };
+
   // Toggle machine generation on/off
   const toggleMachineGeneration = () => {
     if (isGenerating) {
@@ -81,6 +123,7 @@ export const useMachineGenerator = () => {
   return {
     isGenerating,
     toggleMachineGeneration,
-    addNewMachine
+    addNewMachine,
+    addMultipleMachines
   };
 };
