@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -78,7 +79,7 @@ const LiveData: React.FC = () => {
             const unique = combined.reduce((acc, curr) => {
               acc[curr.machineId] = curr;
               return acc;
-            }, {} as Record<string, any>);
+            }, {} as Record<string, AlertItem>);
             
             return Object.values(unique);
           });
@@ -138,7 +139,7 @@ const LiveData: React.FC = () => {
             const newAlert = {
               machineId: newData.machineId,
               value: newData.total_current,
-              timestamp: new Date().toLocaleString()
+              timestamp: new Date(newData.created_at).toLocaleString()
             };
             
             setCurrentAlerts(prev => {

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange, notifyTotalCurrentThresholdAlert } from '@/lib/notification';
@@ -38,7 +39,7 @@ const MockDataGenerator = () => {
 
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
-    // Create a new timestamp for each record
+    // Create a fresh timestamp for each record - this is crucial
     const currentTimestamp = new Date();
     
     // Generate mock data similar to the Python script
@@ -126,7 +127,7 @@ const MockDataGenerator = () => {
         throw error;
       }
       
-      console.log(`Database updated for machine ${machineId}: state changed to ${newState}`);
+      console.log(`Database updated for machine ${machineId}: state changed to ${newState} at ${currentTimestamp.toISOString()}`);
       
       // Send notifications after successful database update
       notifyMachineStateChange(stateChange);

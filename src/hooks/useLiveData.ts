@@ -124,7 +124,7 @@ export const useLiveData = () => {
             const newAlert = {
               machineId: newData.machineId,
               value: newData.total_current,
-              timestamp: new Date().toLocaleString()
+              timestamp: new Date(newData.created_at).toLocaleString()
             };
             
             setCurrentAlerts(prev => {
@@ -138,7 +138,7 @@ export const useLiveData = () => {
             notifyTotalCurrentThresholdAlert({
               machineId: newData.machineId,
               totalCurrent: newData.total_current,
-              timestamp: new Date().toISOString()
+              timestamp: new Date(newData.created_at).toISOString()
             });
             
             // Show toast for high current
@@ -162,7 +162,7 @@ export const useLiveData = () => {
               machineId: newData.machineId,
               previousState: payload.old.state as string,
               newState: newData.state as string,
-              timestamp: new Date().toISOString(),
+              timestamp: new Date(newData.created_at).toISOString(),
               totalCurrent: newData.total_current
             });
             

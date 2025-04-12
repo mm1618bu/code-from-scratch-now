@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -170,13 +171,14 @@ const StateChangeSimulator: React.FC = () => {
     setIsSimulating(true);
     
     try {
-      // Create a new timestamp for this operation
+      // Create a fresh timestamp for this specific operation
       const currentTimestamp = new Date();
       
       console.log('Simulating state change:', {
         machineId: selectedMachine,
         previousState: currentState,
-        newState: targetState
+        newState: targetState,
+        timestamp: currentTimestamp.toISOString()
       });
       
       // Notify about state change
@@ -190,27 +192,27 @@ const StateChangeSimulator: React.FC = () => {
       let error;
       
       if (currentRecordId) {
-        // Update existing record
-        console.log(`Updating existing record for machine ${selectedMachine} with ID ${currentRecordId}`);
+        // Update existing record with the fresh timestamp
+        console.log(`Updating existing record for machine ${selectedMachine} with ID ${currentRecordId} at ${currentTimestamp.toISOString()}`);
         const { error: updateError } = await supabase
           .from('liveData')
           .update({
             machineId: selectedMachine,
             state: targetState,
-            created_at: currentTimestamp.toISOString()
+            created_at: currentTimestamp.toISOString() // Using the fresh timestamp
           })
           .eq('_id', currentRecordId);
           
         error = updateError;
       } else {
-        // Insert new record if none exists
-        console.log(`Creating new record for machine ${selectedMachine}`);
+        // Insert new record with the fresh timestamp
+        console.log(`Creating new record for machine ${selectedMachine} at ${currentTimestamp.toISOString()}`);
         const { error: insertError } = await supabase
           .from('liveData')
           .insert({
             machineId: selectedMachine,
             state: targetState,
-            created_at: currentTimestamp.toISOString(),
+            created_at: currentTimestamp.toISOString(), // Using the fresh timestamp
             _id: uuidv4() // Generate a unique ID for new records
           });
           
