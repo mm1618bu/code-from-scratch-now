@@ -92,6 +92,9 @@ export const sendEmailNotification = async (
   isTotalCurrentAlert: boolean = false
 ): Promise<void> => {
   const preferences = getNotificationPreferences();
+  
+  console.log("Email notification requested. Preferences:", preferences);
+  
   if (!preferences.email) {
     console.log('Email notifications disabled by user preferences');
     return;
@@ -99,10 +102,17 @@ export const sendEmailNotification = async (
   
   const { data: userData } = await supabase.auth.getUser();
   
-  if (!userData.user?.email) {
-    console.error('No user email found for sending notifications');
+  if (!userData?.user?.email) {
+    console.error('No user email found for sending notifications:', userData);
+    toast({
+      title: 'Email Notification Error',
+      description: 'No user email found. Please make sure you are logged in.',
+      variant: 'destructive',
+    });
     return;
   }
+  
+  console.log("Sending email notification to:", userData.user.email);
   
   try {
     if (isTotalCurrentAlert) {
@@ -114,7 +124,9 @@ export const sendEmailNotification = async (
         return;
       }
       
-      const { error } = await supabase.functions.invoke('send-notification-email', {
+      console.log("Invoking send-notification-email function for TOTAL_CURRENT_THRESHOLD");
+      
+      const { data: result, error } = await supabase.functions.invoke('send-notification-email', {
         body: {
           email: userData.user.email,
           machineId: totalCurrentAlert.machineId,
@@ -125,8 +137,11 @@ export const sendEmailNotification = async (
       });
       
       if (error) {
+        console.error("Error invoking send-notification-email:", error);
         throw error;
       }
+      
+      console.log("Email function response:", result);
     } else {
       const stateChange = data as MachineStateChange;
       
@@ -136,7 +151,9 @@ export const sendEmailNotification = async (
         return;
       }
       
-      const { error } = await supabase.functions.invoke('send-notification-email', {
+      console.log("Invoking send-notification-email function for STATE_CHANGE");
+      
+      const { data: result, error } = await supabase.functions.invoke('send-notification-email', {
         body: {
           email: userData.user.email,
           machineId: stateChange.machineId,
@@ -149,16 +166,24 @@ export const sendEmailNotification = async (
       });
       
       if (error) {
+        console.error("Error invoking send-notification-email:", error);
         throw error;
       }
+      
+      console.log("Email function response:", result);
     }
+    
+    toast({
+      title: 'Email Notification Sent',
+      description: `An email notification has been sent to ${userData.user.email}`,
+    });
     
     console.log('Email notification sent successfully');
   } catch (error) {
     console.error('Error sending email notification:', error);
     toast({
       title: 'Email Notification Error',
-      description: 'Failed to send email notification',
+      description: 'Failed to send email notification. See console for details.',
       variant: 'destructive',
     });
   }
@@ -235,6 +260,9 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
   
   // Log to console
   console.log(`Total Current Alert for Machine ${alert.machineId}: ${alert.totalCurrent.toFixed(2)} exceeds threshold of 15.0`);
+  
+  // Send email notification for high current alerts
+  await sendEmailNotification(alert, true);
   
   // Show a toast notification
   toast({

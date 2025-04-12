@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LiveDataItem } from '@/types/liveData';
 import { AlertItem } from '@/components/LiveData/AlertMenu';
+import { notifyTotalCurrentThresholdAlert, notifyMachineStateChange } from '@/lib/notification';
 
 export const useLiveData = () => {
   const { toast } = useToast();
@@ -56,6 +57,15 @@ export const useLiveData = () => {
           });
           
           setAlertCount(prev => prev + highCurrentItems.length);
+          
+          // Trigger notifications for high current items
+          highCurrentItems.forEach(item => {
+            notifyTotalCurrentThresholdAlert({
+              machineId: item.machineId,
+              totalCurrent: item.total_current,
+              timestamp: new Date(item.created_at).toISOString()
+            });
+          });
           
           // Only show toast for high current items
           toast({
@@ -124,6 +134,13 @@ export const useLiveData = () => {
             
             setAlertCount(prev => prev + 1);
             
+            // Trigger notification for this high current event
+            notifyTotalCurrentThresholdAlert({
+              machineId: newData.machineId,
+              totalCurrent: newData.total_current,
+              timestamp: new Date().toISOString()
+            });
+            
             // Show toast for high current
             toast({
               title: "High Current Alert",
@@ -139,6 +156,15 @@ export const useLiveData = () => {
               typeof payload.old === 'object' && 
               'state' in payload.old && 
               payload.old.state !== newData.state) {
+            
+            // Trigger a state change notification with high current
+            notifyMachineStateChange({
+              machineId: newData.machineId,
+              previousState: payload.old.state as string,
+              newState: newData.state as string,
+              timestamp: new Date().toISOString(),
+              totalCurrent: newData.total_current
+            });
             
             toast({
               title: `State Change for Machine ${newData.machineId}`,

@@ -9,7 +9,7 @@ import {
   setNotificationPreferences, 
   areBrowserNotificationsAvailable
 } from '@/lib/notification';
-import { Bell, BellOff, Mail, AlertCircle } from 'lucide-react';
+import { Bell, BellOff, Mail, AlertCircle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
@@ -24,12 +24,14 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { supabase } from '@/integrations/supabase/client';
 
 const NotificationSettings: React.FC = () => {
   const { toast } = useToast();
   const [preferences, setPreferences] = useState(getNotificationPreferences());
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | 'default'>('default');
   const [browserSupported, setBrowserSupported] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const checkNotificationSupport = async () => {
@@ -45,7 +47,15 @@ const NotificationSettings: React.FC = () => {
       }
     };
     
+    const getUserEmail = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.email) {
+        setUserEmail(data.user.email);
+      }
+    };
+    
     checkNotificationSupport();
+    getUserEmail();
   }, []);
 
   const handleBrowserToggle = async (checked: boolean) => {
@@ -75,17 +85,76 @@ const NotificationSettings: React.FC = () => {
   };
 
   const handleEmailToggle = (checked: boolean) => {
-    // Even though we allow toggling this, Total Current alerts will only use browser notifications
     const newPreferences = { ...preferences, email: checked };
     setPreferences(newPreferences);
     setNotificationPreferences(newPreferences);
     
+    if (checked && !userEmail) {
+      toast({
+        title: "Login Required",
+        description: "You need to be logged in to receive email notifications. Please log in and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     toast({
       title: checked ? "Email Notifications Enabled" : "Email Notifications Disabled",
       description: checked 
-        ? "You will now receive email notifications for machine state changes (Total Current alerts will still only show in browser)" 
+        ? `You will now receive email notifications at ${userEmail}` 
         : "You will no longer receive email notifications",
     });
+    
+    // Trigger a test email if enabled
+    if (checked && userEmail) {
+      sendTestEmail();
+    }
+  };
+
+  const sendTestEmail = async () => {
+    if (!userEmail) {
+      toast({
+        title: "Login Required",
+        description: "You need to be logged in to receive email notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      toast({
+        title: "Sending Test Email",
+        description: "We're sending a test email to verify your notification settings.",
+      });
+      
+      const { data, error } = await supabase.functions.invoke('send-notification-email', {
+        body: {
+          email: userEmail,
+          machineId: "TEST001",
+          timestamp: new Date().toISOString(),
+          alertType: 'TOTAL_CURRENT_THRESHOLD',
+          totalCurrent: 20.0
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Test email response:", data);
+      
+      toast({
+        title: "Test Email Sent",
+        description: `A test email has been sent to ${userEmail}. Please check your inbox.`,
+      });
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      toast({
+        title: "Test Email Failed",
+        description: "Failed to send test email. Please check console for details.",
+        variant: "destructive",
+      });
+    }
   };
 
   const requestPermission = async () => {
@@ -127,6 +196,16 @@ const NotificationSettings: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!userEmail && (
+          <Alert variant="destructive" className="bg-red-900/20 border-red-900/50 text-red-400">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Login Required</AlertTitle>
+            <AlertDescription>
+              You need to be logged in to receive email notifications. Please log in first.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {!browserSupported && (
           <Alert variant="destructive" className="bg-red-900/20 border-red-900/50 text-red-400">
             <AlertCircle className="h-4 w-4" />
@@ -165,28 +244,40 @@ const NotificationSettings: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Mail className="h-4 w-4 text-gray-400" />
             <Label htmlFor="email-notifications" className="text-white">Email Notifications</Label>
-            <span className="text-xs text-gray-500">(State changes only)</span>
           </div>
           <Switch
             id="email-notifications"
             checked={preferences.email}
             onCheckedChange={handleEmailToggle}
+            disabled={!userEmail}
             className="data-[state=checked]:bg-sage"
           />
         </div>
         
+        {userEmail && preferences.email && (
+          <div className="mt-2 text-sm text-gray-400 pl-6">
+            Notifications will be sent to: {userEmail}
+          </div>
+        )}
+        
         <Alert className="bg-blue-900/20 border-blue-900/50 text-blue-400 mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Total Current Alerts</AlertTitle>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Email Notifications</AlertTitle>
           <AlertDescription>
-            Total Current alerts (when value exceeds 15.00) will only be shown as browser notifications, not sent by email.
+            Both State Change and Total Current alerts (when current exceeds 15.00) will be sent to your email when enabled.
           </AlertDescription>
         </Alert>
       </CardContent>
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex flex-col gap-2">
         {browserSupported && permissionStatus !== 'granted' && (
-          <Button onClick={requestPermission} className="bg-sage hover:bg-sage/90 text-white">
+          <Button onClick={requestPermission} className="bg-sage hover:bg-sage/90 text-white w-full">
             Request Notification Permission
+          </Button>
+        )}
+        
+        {userEmail && preferences.email && (
+          <Button onClick={sendTestEmail} variant="outline" className="border-sage text-sage hover:bg-sage/20 w-full">
+            Send Test Email
           </Button>
         )}
       </CardFooter>
