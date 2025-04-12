@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -16,15 +17,33 @@ import {
   TableRow
 } from '@/components/ui/table';
 
+// Define interfaces for our data types
+interface LiveDataItem {
+  _id: string;
+  machineId: string;
+  state: string;
+  created_at: string;
+  CT_Avg: number;
+  total_current: number;
+  fault_status: string;
+  [key: string]: any; // For other possible properties
+}
+
+interface AlertItem {
+  machineId: string;
+  value: number;
+  timestamp: string;
+}
+
 const LiveData: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [liveData, setLiveData] = useState([]);
+  const [liveData, setLiveData] = useState<LiveDataItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
-  const [currentAlerts, setCurrentAlerts] = useState<{machineId: string, value: number, timestamp: string}[]>([]);
+  const [currentAlerts, setCurrentAlerts] = useState<AlertItem[]>([]);
 
   const fetchLiveData = async () => {
     setLoading(true);
@@ -46,14 +65,14 @@ const LiveData: React.FC = () => {
       
       if (data) {
         console.log('Fetched data:', data);
-        setLiveData(data);
+        setLiveData(data as LiveDataItem[]);
         
         // Check for any total current values exceeding threshold
-        const highCurrentItems = data.filter((item: any) => item.total_current >= 15.0);
+        const highCurrentItems = (data as LiveDataItem[]).filter(item => item.total_current >= 15.0);
         
         if (highCurrentItems.length > 0) {
           // Collect new alerts
-          const newAlerts = highCurrentItems.map((item: any) => ({
+          const newAlerts = highCurrentItems.map(item => ({
             machineId: item.machineId,
             value: item.total_current,
             timestamp: new Date(item.created_at).toLocaleString()
@@ -119,29 +138,38 @@ const LiveData: React.FC = () => {
       }, (payload) => {
         console.log('Real-time update received:', payload);
         
-        // Check if the updated data has high total current
-        if (payload.new && payload.new.total_current >= 15.0) {
-          const newAlert = {
-            machineId: payload.new.machineId,
-            value: payload.new.total_current,
-            timestamp: new Date().toLocaleString()
-          };
+        // Check if payload.new exists and has the required properties
+        if (payload.new && 
+            typeof payload.new === 'object' && 
+            'total_current' in payload.new && 
+            'machineId' in payload.new) {
           
-          // Add to alerts
-          setCurrentAlerts(prev => {
-            const filtered = prev.filter(a => a.machineId !== newAlert.machineId);
-            return [...filtered, newAlert];
-          });
+          const newData = payload.new as LiveDataItem;
           
-          // Increment alert count
-          setAlertCount(prev => prev + 1);
-          
-          // Show toast notification
-          toast({
-            title: "High Current Alert",
-            description: `Machine ${payload.new.machineId} total current: ${payload.new.total_current.toFixed(2)}`,
-            variant: "destructive",
-          });
+          // Check if the updated data has high total current
+          if (newData.total_current >= 15.0) {
+            const newAlert = {
+              machineId: newData.machineId,
+              value: newData.total_current,
+              timestamp: new Date().toLocaleString()
+            };
+            
+            // Add to alerts
+            setCurrentAlerts(prev => {
+              const filtered = prev.filter(a => a.machineId !== newAlert.machineId);
+              return [...filtered, newAlert];
+            });
+            
+            // Increment alert count
+            setAlertCount(prev => prev + 1);
+            
+            // Show toast notification
+            toast({
+              title: "High Current Alert",
+              description: `Machine ${newData.machineId} total current: ${newData.total_current.toFixed(2)}`,
+              variant: "destructive",
+            });
+          }
         }
         
         fetchLiveData(); // Refresh data when changes occur
