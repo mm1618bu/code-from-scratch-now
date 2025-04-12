@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Database, RefreshCw, Table, Bell } from 'lucide-react';
+import { ArrowLeft, Database, RefreshCw, Table, Bell, BellRing } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -23,6 +22,9 @@ const LiveData: React.FC = () => {
   const { toast } = useToast();
   const [liveData, setLiveData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [alertCount, setAlertCount] = useState(0);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const [currentAlerts, setCurrentAlerts] = useState<{machineId: string, value: number, timestamp: string}[]>([]);
 
   const fetchLiveData = async () => {
     setLoading(true);
@@ -45,6 +47,42 @@ const LiveData: React.FC = () => {
       if (data) {
         console.log('Fetched data:', data);
         setLiveData(data);
+        
+        // Check for any total current values exceeding threshold
+        const highCurrentItems = data.filter((item: any) => item.total_current >= 15.0);
+        
+        if (highCurrentItems.length > 0) {
+          // Collect new alerts
+          const newAlerts = highCurrentItems.map((item: any) => ({
+            machineId: item.machineId,
+            value: item.total_current,
+            timestamp: new Date(item.created_at).toLocaleString()
+          }));
+          
+          // Update alerts
+          setCurrentAlerts(prev => {
+            // Combine previous alerts with new ones, avoiding duplicates
+            const combined = [...prev, ...newAlerts];
+            // Remove duplicates by machine ID (keeping the most recent)
+            const unique = combined.reduce((acc, curr) => {
+              acc[curr.machineId] = curr;
+              return acc;
+            }, {} as Record<string, any>);
+            
+            return Object.values(unique);
+          });
+          
+          // Update alert count
+          setAlertCount(prev => prev + highCurrentItems.length);
+          
+          // Notify user of new high current alerts
+          toast({
+            title: "High Current Alert",
+            description: `${highCurrentItems.length} machine(s) have total current exceeding threshold`,
+            variant: "destructive",
+          });
+        }
+        
         toast({
           title: "Data Refreshed",
           description: "Live data has been refreshed from Supabase",
@@ -80,6 +118,32 @@ const LiveData: React.FC = () => {
         table: 'liveData' 
       }, (payload) => {
         console.log('Real-time update received:', payload);
+        
+        // Check if the updated data has high total current
+        if (payload.new && payload.new.total_current >= 15.0) {
+          const newAlert = {
+            machineId: payload.new.machineId,
+            value: payload.new.total_current,
+            timestamp: new Date().toLocaleString()
+          };
+          
+          // Add to alerts
+          setCurrentAlerts(prev => {
+            const filtered = prev.filter(a => a.machineId !== newAlert.machineId);
+            return [...filtered, newAlert];
+          });
+          
+          // Increment alert count
+          setAlertCount(prev => prev + 1);
+          
+          // Show toast notification
+          toast({
+            title: "High Current Alert",
+            description: `Machine ${payload.new.machineId} total current: ${payload.new.total_current.toFixed(2)}`,
+            variant: "destructive",
+          });
+        }
+        
         fetchLiveData(); // Refresh data when changes occur
       })
       .subscribe((status) => {
@@ -90,6 +154,13 @@ const LiveData: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Clear alerts
+  const clearAlerts = () => {
+    setCurrentAlerts([]);
+    setAlertCount(0);
+    setShowAlerts(false);
+  };
 
   return (
     <div className="min-h-screen bg-dark flex flex-col items-center">
@@ -115,6 +186,56 @@ const LiveData: React.FC = () => {
           </div>
           
           <div className="flex gap-2">
+            <div className="relative">
+              <Button 
+                onClick={() => setShowAlerts(!showAlerts)}
+                variant="outline"
+                className="border-sage text-sage hover:bg-sage/20 relative"
+              >
+                {alertCount > 0 ? (
+                  <>
+                    <BellRing className="h-4 w-4 mr-2 animate-pulse" />
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {alertCount}
+                    </span>
+                  </>
+                ) : (
+                  <Bell className="h-4 w-4 mr-2" />
+                )}
+                Alerts
+              </Button>
+              
+              {showAlerts && currentAlerts.length > 0 && (
+                <div className="absolute right-0 mt-2 w-80 bg-dark-foreground/90 border border-sage/30 rounded-md shadow-lg z-10">
+                  <div className="p-3 border-b border-sage/20 flex justify-between items-center">
+                    <h3 className="text-white font-medium">Current Alerts</h3>
+                    <Button variant="ghost" size="sm" onClick={clearAlerts} className="text-gray-400 hover:text-white">
+                      Clear All
+                    </Button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {currentAlerts.map((alert, index) => (
+                      <div 
+                        key={`${alert.machineId}-${index}`}
+                        className="p-3 border-b border-sage/10 hover:bg-dark-foreground/50"
+                      >
+                        <div className="flex items-start">
+                          <div className="h-2 w-2 mt-1.5 rounded-full bg-red-500 mr-2"></div>
+                          <div>
+                            <p className="text-white font-medium">Machine {alert.machineId}</p>
+                            <p className="text-red-400 text-sm">
+                              Total Current: {alert.value.toFixed(2)}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-1">{alert.timestamp}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <Button 
               onClick={() => navigate('/notifications')}
               variant="outline"
@@ -170,13 +291,14 @@ const LiveData: React.FC = () => {
                     <TableHead className="text-gray-400">State</TableHead>
                     <TableHead className="text-gray-400">Timestamp</TableHead>
                     <TableHead className="text-gray-400">Current Avg</TableHead>
+                    <TableHead className="text-gray-400">Total Current</TableHead>
                     <TableHead className="text-gray-400">Fault Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <div className="flex justify-center">
                           <RefreshCw className="h-8 w-8 animate-spin text-sage" />
                         </div>
@@ -184,7 +306,12 @@ const LiveData: React.FC = () => {
                     </TableRow>
                   ) : (
                     liveData.map((item: any) => (
-                      <TableRow key={`${item.machineId}-${item.created_at}`} className="border-b border-dark-foreground/10 hover:bg-dark-foreground/5">
+                      <TableRow 
+                        key={`${item.machineId}-${item.created_at}`} 
+                        className={`border-b border-dark-foreground/10 hover:bg-dark-foreground/5 ${
+                          item.total_current >= 15.0 ? 'bg-red-900/20' : ''
+                        }`}
+                      >
                         <TableCell className="text-white">{item.machineId}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -201,6 +328,14 @@ const LiveData: React.FC = () => {
                           {new Date(item.created_at).toLocaleString()}
                         </TableCell>
                         <TableCell className="text-gray-400">{item.CT_Avg?.toFixed(2) || 'N/A'}</TableCell>
+                        <TableCell className={item.total_current >= 15.0 ? 'text-red-400 font-bold' : 'text-gray-400'}>
+                          {item.total_current?.toFixed(2) || 'N/A'}
+                          {item.total_current >= 15.0 && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
+                              HIGH
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
                             item.fault_status === 'normal' ? 'bg-green-500/20 text-green-400' :
