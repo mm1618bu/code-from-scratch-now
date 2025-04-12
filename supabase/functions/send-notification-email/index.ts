@@ -9,9 +9,11 @@ const corsHeaders = {
 interface EmailPayload {
   email: string;
   machineId: string;
-  previousState: string;
-  newState: string;
+  previousState?: string;
+  newState?: string;
   timestamp: string;
+  alertType?: string;
+  ctAvg?: number;
 }
 
 serve(async (req) => {
@@ -21,10 +23,11 @@ serve(async (req) => {
   }
 
   try {
-    const { email, machineId, previousState, newState, timestamp } = await req.json() as EmailPayload;
+    const payload = await req.json() as EmailPayload;
+    const { email, machineId, timestamp, alertType } = payload;
     
     // Validate input
-    if (!email || !machineId || !previousState || !newState || !timestamp) {
+    if (!email || !machineId || !timestamp) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -37,18 +40,43 @@ serve(async (req) => {
     // For now, we'll simulate a successful email send
     
     // For demonstration, we're just logging the email content that would be sent
-    const emailContent = {
-      to: email,
-      subject: `Machine ${machineId} State Change Notification`,
-      body: `
-        Machine ${machineId} has changed state:
-        From: ${previousState}
-        To: ${newState}
-        Time: ${new Date(timestamp).toLocaleString()}
-        
-        This is an automated notification.
-      `
-    };
+    let emailContent;
+    
+    if (alertType === 'CT_AVG_THRESHOLD') {
+      // Handle CT_Avg threshold alert
+      const { ctAvg } = payload;
+      
+      emailContent = {
+        to: email,
+        subject: `ALERT: Machine ${machineId} CT Average Threshold Exceeded`,
+        body: `
+          CT Average Alert for Machine ${machineId}
+          
+          The CT Average value of ${ctAvg?.toFixed(2) || 'unknown'} has exceeded the threshold of 15.0.
+          Time: ${new Date(timestamp).toLocaleString()}
+          
+          This may indicate an overload condition that requires immediate attention.
+          
+          This is an automated notification.
+        `
+      };
+    } else {
+      // Handle state change notification
+      const { previousState, newState } = payload;
+      
+      emailContent = {
+        to: email,
+        subject: `Machine ${machineId} State Change Notification`,
+        body: `
+          Machine ${machineId} has changed state:
+          From: ${previousState}
+          To: ${newState}
+          Time: ${new Date(timestamp).toLocaleString()}
+          
+          This is an automated notification.
+        `
+      };
+    }
     
     console.log("Email content that would be sent:", emailContent);
     
@@ -58,16 +86,10 @@ serve(async (req) => {
     const { data, error } = await resend.emails.send({
       from: "notifications@yourdomain.com",
       to: email,
-      subject: `Machine ${machineId} State Change Notification`,
+      subject: emailContent.subject,
       html: `
-        <h1>Machine State Change Notification</h1>
-        <p>Machine <strong>${machineId}</strong> has changed state:</p>
-        <ul>
-          <li>From: <strong>${previousState}</strong></li>
-          <li>To: <strong>${newState}</strong></li>
-          <li>Time: ${new Date(timestamp).toLocaleString()}</li>
-        </ul>
-        <p>This is an automated notification.</p>
+        <h1>${emailContent.subject}</h1>
+        <p>${emailContent.body.replace(/\n/g, '<br/>')}</p>
       `,
     });
     
