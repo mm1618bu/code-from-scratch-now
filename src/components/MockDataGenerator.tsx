@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyMachineStateChange, notifyTotalCurrentThresholdAlert } from '@/lib/notification';
@@ -134,7 +135,7 @@ const MockDataGenerator = () => {
       notifyMachineStateChange(stateChange);
       
       // Check if Total Current exceeds threshold and send alert notification
-      if (totalCurrent > TOTAL_CURRENT_THRESHOLD) {
+      if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {
         console.log(`Total Current threshold exceeded for machine ${machineId}: ${totalCurrent}`);
         notifyTotalCurrentThresholdAlert({
           machineId,

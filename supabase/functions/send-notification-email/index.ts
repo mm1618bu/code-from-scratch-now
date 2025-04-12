@@ -46,6 +46,8 @@ serve(async (req) => {
       // Handle Total Current threshold alert
       const { totalCurrent } = payload;
       
+      console.log(`Processing Total Current alert for machine ${machineId}, value: ${totalCurrent}`);
+      
       emailContent = {
         to: email,
         subject: `URGENT: Machine ${machineId} Total Current Threshold Exceeded`,

@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -200,6 +199,8 @@ export const sendPushNotification = async (alert: TotalCurrentAlertNotification)
 
 // Handle Total Current threshold alert
 export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
+  console.log(`Triggering notification for Total Current alert: ${alert.machineId}, value: ${alert.totalCurrent}`);
+  
   // Send browser notification
   await sendBrowserNotification(
     `ALERT: Machine ${alert.machineId} High Total Current`,
