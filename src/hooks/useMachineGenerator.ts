@@ -98,13 +98,20 @@ export const useMachineGenerator = () => {
       });
     } else {
       // Start generation - every 20 seconds (20000 ms) generating 30 machines
-      const id = setInterval(() => addMultipleMachines(30), 20000) as unknown as number;
+      const id = setInterval(() => {
+        console.log("Auto-generating 30 machines from interval");
+        addMultipleMachines(30);
+      }, 20000) as unknown as number;
+      
       intervalRef.current = id;
+      
       toast({
         title: "Machine Generation Started",
         description: "Generating 30 new machines every 20 seconds"
       });
+      
       // Generate machines immediately
+      console.log("Immediately generating first batch of 30 machines");
       addMultipleMachines(30);
     }
     

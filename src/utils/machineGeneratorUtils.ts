@@ -23,9 +23,11 @@ export const generateUniqueMachineId = async (): Promise<string> => {
   
   // If machine ID already exists, recursively generate a new one
   if (data && data.length > 0) {
+    console.log(`Machine ID ${machineId} already exists, generating new one`);
     return generateUniqueMachineId();
   }
   
+  console.log(`Generated unique machine ID: ${machineId}`);
   return machineId;
 };
 
