@@ -19,6 +19,7 @@ export interface TotalCurrentAlertNotification {
 export interface NotificationPreference {
   email: boolean;
   browser: boolean;
+  push: boolean;
 }
 
 // Store user notification preferences in localStorage
@@ -27,8 +28,8 @@ export const getNotificationPreferences = (): NotificationPreference => {
   if (stored) {
     return JSON.parse(stored);
   }
-  // Default to both enabled
-  return { email: true, browser: true };
+  // Default to all enabled
+  return { email: true, browser: true, push: true };
 };
 
 export const setNotificationPreferences = (preferences: NotificationPreference): void => {
@@ -144,6 +145,59 @@ export const sendEmailNotification = async (
   }
 };
 
+// Check if the browser supports Push API
+export const isPushNotificationSupported = (): boolean => {
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+};
+
+// Send a push notification for Total Current threshold alert
+export const sendPushNotification = async (alert: TotalCurrentAlertNotification): Promise<void> => {
+  const preferences = getNotificationPreferences();
+  
+  if (!preferences.push) {
+    console.log('Push notifications disabled by user preferences');
+    return;
+  }
+  
+  if (!isPushNotificationSupported()) {
+    console.log('Push notifications not supported in this browser');
+    // Fall back to browser notification
+    await sendBrowserNotification(
+      `ALERT: Machine ${alert.machineId} High Total Current`,
+      {
+        body: `Total Current value is ${alert.totalCurrent.toFixed(2)}, which exceeds the threshold of 15.0`,
+        icon: '/favicon.ico',
+      }
+    );
+    return;
+  }
+  
+  try {
+    // In a real implementation, we would register a service worker and send push notifications
+    // For now, we'll simulate with a toast and browser notification
+    toast({
+      title: `PUSH ALERT: Machine ${alert.machineId}`,
+      description: `Total Current (${alert.totalCurrent.toFixed(2)}) exceeds threshold of 15.0`,
+      variant: 'destructive',
+    });
+    
+    // Also send a browser notification as a visual indicator
+    await sendBrowserNotification(
+      `PUSH ALERT: Machine ${alert.machineId} High Total Current`,
+      {
+        body: `Total Current value is ${alert.totalCurrent.toFixed(2)}, which exceeds the threshold of 15.0`,
+        icon: '/favicon.ico',
+        tag: `push-total-current-alert-${alert.machineId}`,
+        requireInteraction: true,
+      }
+    );
+    
+    console.log('Push notification simulated for Total Current alert');
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+  }
+};
+
 // Handle Total Current threshold alert
 export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
   // Send browser notification
@@ -156,6 +210,9 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
       requireInteraction: true,
     }
   );
+  
+  // Send push notification (will fall back to browser notification if not supported)
+  await sendPushNotification(alert);
   
   // Send email notification
   await sendEmailNotification(alert, true);

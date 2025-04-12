@@ -48,7 +48,7 @@ serve(async (req) => {
       
       emailContent = {
         to: email,
-        subject: `ALERT: Machine ${machineId} Total Current Threshold Exceeded`,
+        subject: `URGENT: Machine ${machineId} Total Current Threshold Exceeded`,
         body: `
           Total Current Alert for Machine ${machineId}
           
@@ -57,7 +57,7 @@ serve(async (req) => {
           
           This may indicate an overload condition that requires immediate attention.
           
-          This is an automated notification.
+          This is an automated notification. You're receiving this because both push and email notifications are enabled in your preferences.
         `
       };
     } else {
