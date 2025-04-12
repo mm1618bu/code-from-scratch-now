@@ -193,21 +193,11 @@ export const sendPushNotification = async (alert: TotalCurrentAlertNotification)
 export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
   console.log(`Triggering notification for Total Current alert: ${alert.machineId}, value: ${alert.totalCurrent}`);
   
-  // Send browser notification with high visibility
-  await sendBrowserNotification(
-    `ALERT: Machine ${alert.machineId} High Total Current`,
-    {
-      body: `Total Current value is ${alert.totalCurrent.toFixed(2)}, which exceeds the threshold of 15.0`,
-      icon: '/favicon.ico',
-      tag: `total-current-alert-${alert.machineId}`,
-      requireInteraction: true, // This makes the notification stay until user interacts with it
-    }
-  );
+  // Log to console only
+  console.log(`CONSOLE ONLY: Total Current Alert for Machine ${alert.machineId}: ${alert.totalCurrent.toFixed(2)} exceeds threshold of 15.0`);
   
-  // Send push notification (will fall back to browser notification if not supported)
-  await sendPushNotification(alert);
-  
-  // Also show a toast notification for immediate visibility in the app
+  // No browser notifications, no push notifications, no email notifications
+  // Just show a toast notification for immediate visibility in the app
   toast({
     title: `High Total Current Alert: Machine ${alert.machineId}`,
     description: `Total Current value (${alert.totalCurrent.toFixed(2)}) exceeds threshold of 15.0`,

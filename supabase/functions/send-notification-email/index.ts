@@ -44,16 +44,16 @@ serve(async (req) => {
     
     if (alertType === 'TOTAL_CURRENT_THRESHOLD') {
       // For Total Current alerts, we'll just log them but not actually send emails
-      // as the user wants browser alerts only
+      // as the user wants console logs only
       const { totalCurrent } = payload;
       
-      console.log(`Processing Total Current alert for machine ${machineId}, value: ${totalCurrent} - NOT sending email (browser alerts only)`);
+      console.log(`Processing Total Current alert for machine ${machineId}, value: ${totalCurrent} - NOT sending email (console logs only)`);
       
       // We're not sending email for this case
       emailContent = {
         to: email,
-        subject: `[Browser Alert Only] Machine ${machineId} Total Current Threshold Exceeded`,
-        body: `This alert will only be shown in the browser, no email will be sent.`
+        subject: `[Console Alert Only] Machine ${machineId} Total Current Threshold Exceeded`,
+        body: `This alert will only be logged to the console, no email will be sent.`
       };
     } else {
       // Handle state change notification
