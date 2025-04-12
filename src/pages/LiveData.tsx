@@ -9,6 +9,8 @@ import { useLiveData } from '@/hooks/useLiveData';
 import LiveDataHeader from '@/components/LiveData/LiveDataHeader';
 import LiveDataContent from '@/components/LiveData/LiveDataContent';
 import LiveDataFooter from '@/components/LiveData/LiveDataFooter';
+import MockDataGenerator from '@/components/MockDataGenerator';
+import MachineGenerator from '@/components/MachineGenerator';
 
 const LiveData: React.FC = () => {
   const navigate = useNavigate();
@@ -67,6 +69,9 @@ const LiveData: React.FC = () => {
           Need help? <a href="#" className="text-sage hover:underline">Contact Support</a>
         </p>
       </footer>
+      
+      <MockDataGenerator />
+      <MachineGenerator />
     </div>
   );
 };

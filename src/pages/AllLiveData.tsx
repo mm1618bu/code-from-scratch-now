@@ -12,6 +12,8 @@ import HeaderActions from '@/components/LiveData/HeaderActions';
 import StateFilter from '@/components/LiveData/StateFilter';
 import LiveDataTable from '@/components/LiveData/LiveDataTable';
 import DataPagination from '@/components/LiveData/DataPagination';
+import MockDataGenerator from '@/components/MockDataGenerator';
+import MachineGenerator from '@/components/MachineGenerator';
 
 const AllLiveData: React.FC = () => {
   const navigate = useNavigate();
@@ -125,6 +127,9 @@ const AllLiveData: React.FC = () => {
           Need help? <a href="#" className="text-sage hover:underline">Contact Support</a>
         </p>
       </footer>
+      
+      <MockDataGenerator />
+      <MachineGenerator />
     </div>
   );
 };
