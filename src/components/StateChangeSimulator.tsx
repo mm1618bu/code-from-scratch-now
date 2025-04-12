@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -193,7 +192,7 @@ const StateChangeSimulator: React.FC = () => {
       
       if (currentRecordId) {
         // Update existing record with the fresh timestamp
-        console.log(`Updating existing record for machine ${selectedMachine} with ID ${currentRecordId} at ${currentTimestamp.toISOString()}`);
+        console.log(`Updating existing record for machine ${selectedMachine} with ID ${currentRecordId} at timestamp ${currentTimestamp.toISOString()}`);
         const { error: updateError } = await supabase
           .from('liveData')
           .update({
@@ -206,7 +205,7 @@ const StateChangeSimulator: React.FC = () => {
         error = updateError;
       } else {
         // Insert new record with the fresh timestamp
-        console.log(`Creating new record for machine ${selectedMachine} at ${currentTimestamp.toISOString()}`);
+        console.log(`Creating new record for machine ${selectedMachine} at timestamp ${currentTimestamp.toISOString()}`);
         const { error: insertError } = await supabase
           .from('liveData')
           .insert({

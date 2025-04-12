@@ -39,7 +39,7 @@ const MockDataGenerator = () => {
 
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
-    // Create a fresh timestamp for each record - this is crucial
+    // Create a fresh timestamp for THIS SPECIFIC record
     const currentTimestamp = new Date();
     
     // Generate mock data similar to the Python script
@@ -81,7 +81,7 @@ const MockDataGenerator = () => {
         timestamp: currentTimestamp.toISOString()
       };
       
-      // Prepare the data update
+      // Prepare the data update - important to use the fresh timestamp
       const dataUpdate = {
         machineId: machineId,
         state: newState,
@@ -102,7 +102,7 @@ const MockDataGenerator = () => {
       
       if (currentData && currentData._id) {
         // Update existing record
-        console.log(`Updating existing record for machine ${machineId} with ID ${currentData._id}`);
+        console.log(`Updating existing record for machine ${machineId} with ID ${currentData._id} at timestamp ${currentTimestamp.toISOString()}`);
         const { error: updateError } = await supabase
           .from('liveData')
           .update(dataUpdate)
@@ -111,7 +111,7 @@ const MockDataGenerator = () => {
         error = updateError;
       } else {
         // Insert new record if none exists
-        console.log(`Creating new record for machine ${machineId}`);
+        console.log(`Creating new record for machine ${machineId} at timestamp ${currentTimestamp.toISOString()}`);
         const { error: insertError } = await supabase
           .from('liveData')
           .insert({
