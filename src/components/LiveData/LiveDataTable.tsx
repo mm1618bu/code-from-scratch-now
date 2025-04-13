@@ -16,6 +16,7 @@ interface LiveDataTableProps {
   loading: boolean;
   currentData: LiveDataItem[];
   stateFilter: string;
+  machineIdFilter: string;
   getStateColor: (state: string) => string;
 }
 
@@ -23,6 +24,7 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
   loading,
   currentData,
   stateFilter,
+  machineIdFilter,
   getStateColor
 }) => {
   return (
@@ -95,7 +97,9 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
         ) : (
           <TableRow>
             <TableCell colSpan={13} className="text-center py-8 text-gray-400">
-              {stateFilter === "all" ? "No data available in Supabase" : "No data matches the selected filter"}
+              {(stateFilter === "all" && machineIdFilter === "all") 
+                ? "No data available in Supabase" 
+                : `No data matches the selected filter${stateFilter !== "all" ? ` for state '${stateFilter}'` : ''}${machineIdFilter !== "all" ? ` and machine ID '${machineIdFilter}'` : ''}`}
             </TableCell>
           </TableRow>
         )}

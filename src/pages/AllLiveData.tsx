@@ -10,6 +10,7 @@ import { useLiveData } from '@/hooks/useLiveData';
 import { getStateColor } from '@/utils/stateColors';
 import HeaderActions from '@/components/LiveData/HeaderActions';
 import StateFilter from '@/components/LiveData/StateFilter';
+import MachineIdFilter from '@/components/LiveData/MachineIdFilter';
 import LiveDataTable from '@/components/LiveData/LiveDataTable';
 import DataPagination from '@/components/LiveData/DataPagination';
 import MockDataGenerator from '@/components/MockDataGenerator';
@@ -23,6 +24,8 @@ const AllLiveData: React.FC = () => {
     loading,
     stateFilter,
     setStateFilter,
+    machineIdFilter,
+    setMachineIdFilter,
     currentPage,
     setCurrentPage,
     alertCount,
@@ -32,6 +35,7 @@ const AllLiveData: React.FC = () => {
     clearAlerts,
     fetchLiveData,
     uniqueStates,
+    uniqueMachineIds,
     totalPages,
     currentData,
     filteredData,
@@ -91,11 +95,16 @@ const AllLiveData: React.FC = () => {
             </div>
           </div>
 
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex flex-wrap gap-4 justify-end">
             <StateFilter 
               stateFilter={stateFilter}
               setStateFilter={setStateFilter}
               uniqueStates={uniqueStates}
+            />
+            <MachineIdFilter
+              machineIdFilter={machineIdFilter}
+              setMachineIdFilter={setMachineIdFilter}
+              uniqueMachineIds={uniqueMachineIds}
             />
           </div>
 
@@ -104,6 +113,7 @@ const AllLiveData: React.FC = () => {
               loading={loading}
               currentData={currentData}
               stateFilter={stateFilter}
+              machineIdFilter={machineIdFilter}
               getStateColor={getStateColor}
             />
           </ScrollArea>
