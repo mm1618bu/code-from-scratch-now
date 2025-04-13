@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 export { supabase };
 
-// Enable real-time channel
+// This function enables a generic test realtime channel
+// Commented out to prevent multiple subscriptions that could cause rapid refreshes
+/*
 const enableRealtime = async () => {
   try {
     // Add logging to verify realtime setup
@@ -31,5 +33,6 @@ const enableRealtime = async () => {
 
 // Call the function to enable real-time
 enableRealtime();
+*/
 
-console.log('Supabase client imported and realtime enabled');
+console.log('Supabase client imported');

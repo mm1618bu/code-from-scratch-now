@@ -13,6 +13,7 @@ export const useSupabaseRealtime = (
   const lastRefreshTimeRef = useRef<number>(Date.now());
   const pendingRefreshRef = useRef<boolean>(false);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const channelRef = useRef<any>(null);
 
   // Throttled refresh function that ensures we don't refresh more than once every 5 seconds
   const throttledRefresh = useCallback(() => {
@@ -37,14 +38,17 @@ export const useSupabaseRealtime = (
         clearTimeout(refreshTimeoutRef.current);
       }
       
-      // Schedule a new refresh
+      // Schedule a new refresh for when the minimum interval has passed
+      const delayTime = minimumRefreshInterval - timeSinceLastRefresh;
+      console.log(`Scheduling refresh in ${delayTime}ms`);
+      
       refreshTimeoutRef.current = setTimeout(() => {
         console.log('Executing delayed refresh');
         onFetchData();
         lastRefreshTimeRef.current = Date.now();
         pendingRefreshRef.current = false;
         refreshTimeoutRef.current = null;
-      }, minimumRefreshInterval - timeSinceLastRefresh);
+      }, delayTime);
     } else {
       // If it's been more than 5 seconds, refresh immediately
       console.log('Refresh threshold met, refreshing immediately');
@@ -56,6 +60,13 @@ export const useSupabaseRealtime = (
   useEffect(() => {
     console.log('Setting up Supabase realtime subscription');
     
+    // Cancel any existing subscription
+    if (channelRef.current) {
+      console.log('Removing existing Supabase realtime subscription');
+      supabase.removeChannel(channelRef.current);
+    }
+    
+    // Set up a new subscription
     const channel = supabase
       .channel('public:liveData:hook')
       .on('postgres_changes', { 
@@ -104,6 +115,9 @@ export const useSupabaseRealtime = (
       .subscribe((status) => {
         console.log('Realtime subscription status in useSupabaseRealtime:', status);
       });
+    
+    // Store the channel reference so we can clean it up later
+    channelRef.current = channel;
       
     return () => {
       // Clean up timeout if component unmounts
@@ -112,7 +126,9 @@ export const useSupabaseRealtime = (
       }
       
       console.log('Removing Supabase realtime subscription');
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [throttledRefresh, onNewAlert, toast, onFetchData]);
 };
