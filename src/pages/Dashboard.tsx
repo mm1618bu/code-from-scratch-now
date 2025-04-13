@@ -39,10 +39,6 @@ const Dashboard: React.FC = () => {
               <span className="text-white">{user?.email}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">ID:</span>
-              <span className="text-white">{user?.id.substring(0, 8)}...</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-gray-400">Last Sign In:</span>
               <span className="text-white">
                 {user?.last_sign_in_at 
