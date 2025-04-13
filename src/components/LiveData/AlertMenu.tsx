@@ -2,6 +2,7 @@
 import React from 'react';
 import { Bell, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export interface AlertItem {
   machineId: string;
@@ -25,27 +26,33 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   clearAlerts
 }) => {
   return (
-    <div className="relative">
-      <Button 
-        onClick={() => setShowAlerts(!showAlerts)}
-        variant="outline"
-        className="border-sage text-sage hover:bg-sage/20 relative"
-      >
-        {alertCount > 0 ? (
-          <>
-            <BellRing className="h-4 w-4 mr-2 animate-pulse" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {alertCount}
-            </span>
-          </>
-        ) : (
-          <Bell className="h-4 w-4 mr-2" />
-        )}
-        Alerts
-      </Button>
+    <Popover open={showAlerts} onOpenChange={setShowAlerts}>
+      <PopoverTrigger asChild>
+        <Button 
+          variant="outline"
+          className="border-sage text-sage hover:bg-sage/20 relative"
+        >
+          {alertCount > 0 ? (
+            <>
+              <BellRing className="h-4 w-4 mr-2 animate-pulse" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {alertCount}
+              </span>
+            </>
+          ) : (
+            <Bell className="h-4 w-4 mr-2" />
+          )}
+          Alerts
+        </Button>
+      </PopoverTrigger>
       
-      {showAlerts && currentAlerts.length > 0 && (
-        <div className="absolute right-0 mt-2 w-80 bg-dark-foreground/90 border border-sage/30 rounded-md shadow-lg z-10">
+      {currentAlerts.length > 0 && (
+        <PopoverContent 
+          className="w-80 p-0 bg-zinc-900 border border-sage/30 text-white shadow-lg z-50" 
+          align="end"
+          side="bottom"
+          sideOffset={5}
+        >
           <div className="p-3 border-b border-sage/20 flex justify-between items-center">
             <h3 className="text-white font-medium">Current Alerts</h3>
             <Button variant="ghost" size="sm" onClick={clearAlerts} className="text-gray-400 hover:text-white">
@@ -56,7 +63,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
             {currentAlerts.map((alert, index) => (
               <div 
                 key={`${alert.machineId}-${index}`}
-                className="p-3 border-b border-sage/10 hover:bg-dark-foreground/50"
+                className="p-3 border-b border-sage/10 hover:bg-zinc-800"
               >
                 <div className="flex items-start">
                   <div className="h-2 w-2 mt-1.5 rounded-full bg-red-500 mr-2"></div>
@@ -71,9 +78,9 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               </div>
             ))}
           </div>
-        </div>
+        </PopoverContent>
       )}
-    </div>
+    </Popover>
   );
 };
 
