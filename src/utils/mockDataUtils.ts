@@ -1,5 +1,6 @@
+
 // Constants for random selection
-export const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby'];
+export const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby', 'off'];
 export const MACHINE_IDS = ['MACH001', 'MACH002', 'MACH003', 'MACH004', 'MACH005', 'MACH006', 'MACH007', 'MACH008'];
 export const FAULT_STATUSES = ['fault_detected', 'normal', 'warning', 'critical'];
 export const TOTAL_CURRENT_THRESHOLD = 15.0; // Threshold for Total Current alert

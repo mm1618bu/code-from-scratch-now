@@ -61,43 +61,59 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
               </TableCell>
             </TableRow>
           ) : currentData.length > 0 ? (
-            currentData.map((item, index) => (
-              <TableRow 
-                key={item._id || `${item.machineId}-${item.created_at}-${index}`} 
-                className={`border-b border-dark-foreground/10 hover:bg-dark-foreground/5 ${
-                  item.total_current >= 15.0 ? 'bg-red-900/20' : ''
-                }`}
-              >
-                <TableCell className="text-white font-medium">{item.machineId}</TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStateColor(item.state)}`}>
-                    {item.state}
-                  </span>
-                </TableCell>
-                <TableCell className="text-gray-300">{item.CT1}</TableCell>
-                <TableCell className="text-gray-300">{item.CT2}</TableCell>
-                <TableCell className="text-gray-300">{item.CT3}</TableCell>
-                <TableCell className="text-gray-300">{item.CT_Avg}</TableCell>
-                <TableCell className={item.total_current >= 15.0 ? 'text-red-400 font-bold' : 'text-gray-300'}>
-                  {item.total_current}
-                  {item.total_current >= 15.0 && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
-                      HIGH
+            currentData.map((item, index) => {
+              // Check if machine is in offline state
+              const isOffline = item.CT1 === 0 && item.CT2 === 0 && item.CT3 === 0 && item.total_current === 0;
+              
+              return (
+                <TableRow 
+                  key={item._id || `${item.machineId}-${item.created_at}-${index}`} 
+                  className={`border-b border-dark-foreground/10 hover:bg-dark-foreground/5 ${
+                    isOffline ? 'bg-blue-900/20' : 
+                    item.total_current >= 15.0 ? 'bg-red-900/20' : ''
+                  }`}
+                >
+                  <TableCell className="text-white font-medium">{item.machineId}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                      isOffline || item.state === 'off' ? 'bg-blue-500/20 text-blue-400' : getStateColor(item.state)
+                    }`}>
+                      {isOffline && item.state !== 'off' ? 'off' : item.state}
                     </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-gray-300">{item.state_duration}s</TableCell>
-                <TableCell className="text-gray-300">{item.fault_status}</TableCell>
-                <TableCell className="text-gray-300">{item.fw_version}</TableCell>
-                <TableCell className="text-gray-300 font-mono text-xs">{item.mac}</TableCell>
-                <TableCell className="text-gray-300 whitespace-nowrap">
-                  {new Date(item.created_at).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-gray-300 font-mono text-xs truncate max-w-[100px]">
-                  {item._id}
-                </TableCell>
-              </TableRow>
-            ))
+                  </TableCell>
+                  <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>{item.CT1}</TableCell>
+                  <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>{item.CT2}</TableCell>
+                  <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>{item.CT3}</TableCell>
+                  <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>{item.CT_Avg}</TableCell>
+                  <TableCell className={
+                    isOffline ? 'text-blue-400 font-bold' : 
+                    item.total_current >= 15.0 ? 'text-red-400 font-bold' : 'text-gray-300'
+                  }>
+                    {item.total_current}
+                    {isOffline && (
+                      <span className="ml-2 px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">
+                        OFFLINE
+                      </span>
+                    )}
+                    {!isOffline && item.total_current >= 15.0 && (
+                      <span className="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
+                        HIGH
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-gray-300">{item.state_duration}s</TableCell>
+                  <TableCell className="text-gray-300">{item.fault_status}</TableCell>
+                  <TableCell className="text-gray-300">{item.fw_version}</TableCell>
+                  <TableCell className="text-gray-300 font-mono text-xs">{item.mac}</TableCell>
+                  <TableCell className="text-gray-300 whitespace-nowrap">
+                    {new Date(item.created_at).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-gray-300 font-mono text-xs truncate max-w-[100px]">
+                    {item._id}
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={13} className="text-center py-8 text-gray-400">

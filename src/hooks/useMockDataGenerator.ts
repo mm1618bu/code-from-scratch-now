@@ -24,16 +24,19 @@ export const useMockDataGenerator = () => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [intervalId, setIntervalId] = useState<number | null>(null);
+  const [simulatingDowntime, setSimulatingDowntime] = useState(false);
+  const [downtimeMachineId, setDowntimeMachineId] = useState('');
+  const [downtimeCount, setDowntimeCount] = useState(0);
 
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
     // Generate a new timestamp at the exact moment this function runs
     const currentTimestamp = new Date();
     
-    // Generate mock data similar to the Python script
-    const machineId = getRandomItem(MACHINE_IDS);
-    
     try {
+      // If we're simulating downtime, use the selected machine ID
+      const machineId = simulatingDowntime ? downtimeMachineId : getRandomItem(MACHINE_IDS);
+      
       // Get the current state for this machine to use as previous state
       const { data: currentData } = await supabase
         .from('liveData')
@@ -44,37 +47,84 @@ export const useMockDataGenerator = () => {
         .maybeSingle();
       
       const previousState = currentData?.state || getRandomItem(MACHINE_STATES);
-      let newState = getRandomItem(MACHINE_STATES);
-      
-      // Make sure the new state is different from the previous state
-      while (newState === previousState) {
-        newState = getRandomItem(MACHINE_STATES);
-      }
-      
-      // Decide if the machine should be offline (all currents zero)
-      // 15% chance of generating an offline record
-      const generateOfflineRecord = Math.random() < 0.15;
       
       // Generate appropriate current values
-      let ct1, ct2, ct3, ctAvg, totalCurrent;
+      let ct1, ct2, ct3, ctAvg, totalCurrent, newState;
       
-      if (generateOfflineRecord) {
-        // Machine is offline - all currents are zero
-        ct1 = 0;
-        ct2 = 0;
-        ct3 = 0;
-        ctAvg = 0;
-        totalCurrent = 0;
-        newState = 'idle'; // Typically offline machines are in idle state
+      // If we are simulating downtime and in downtime phase (counts 0-2 are offline)
+      if (simulatingDowntime) {
+        // Machine is in downtime phase (first 3 records should be offline)
+        if (downtimeCount < 3) {
+          // Machine is offline - all currents are zero
+          ct1 = 0;
+          ct2 = 0;
+          ct3 = 0;
+          ctAvg = 0;
+          totalCurrent = 0;
+          newState = 'off'; // Use "off" state specifically for offline machines
+          setDowntimeCount(prev => prev + 1);
+          console.log(`Simulating machine ${machineId} in offline state (${downtimeCount + 1}/3)`);
+        } else if (downtimeCount >= 3 && downtimeCount < 6) {
+          // Machine is coming back online
+          ct1 = getRandomFloat(0.5, 6.0);
+          ct2 = getRandomFloat(0.5, 6.0);
+          ct3 = Math.floor(getRandomFloat(0.0, 6.0));
+          ctAvg = getRandomFloat(0.5, 15.0);
+          totalCurrent = getRandomFloat(1.5, 15.0);
+          newState = 'running'; // Machine should be in running state when back online
+          setDowntimeCount(prev => prev + 1);
+          console.log(`Simulating machine ${machineId} back online (${downtimeCount - 2}/3)`);
+          
+          // End simulation after 6 cycles (3 offline, 3 online)
+          if (downtimeCount === 5) {
+            console.log('Downtime simulation complete, returning to normal mock data generation');
+            setSimulatingDowntime(false);
+            setDowntimeCount(0);
+            setDowntimeMachineId('');
+            
+            toast({
+              title: "Downtime Simulation Complete",
+              description: `Machine ${machineId} has gone through offline and online states`,
+            });
+          }
+        }
       } else {
-        // Generate random values for currents
-        ct1 = getRandomFloat(0.5, 6.0);
-        ct2 = getRandomFloat(0.5, 6.0);
-        ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
-        ctAvg = getRandomFloat(0.5, 15.0); // Keep CT_Avg within normal range
-        
-        // Use our helper function that might generate high values for Total Current
-        totalCurrent = generatePossiblyHighTotalCurrent();
+        // Regular mock data generation (not simulating downtime)
+        // Decide if we should start a new downtime simulation (10% chance)
+        if (Math.random() < 0.1 && !simulatingDowntime) {
+          // Start a new downtime simulation
+          setSimulatingDowntime(true);
+          setDowntimeCount(0);
+          setDowntimeMachineId(machineId);
+          
+          // Machine goes offline in the first record
+          ct1 = 0;
+          ct2 = 0;
+          ct3 = 0;
+          ctAvg = 0;
+          totalCurrent = 0;
+          newState = 'off'; // Use "off" state specifically for offline machines
+          
+          toast({
+            title: "Starting Downtime Simulation",
+            description: `Simulating machine ${machineId} going offline and then back online`,
+          });
+          
+          console.log(`Starting downtime simulation for machine ${machineId}`);
+        } else {
+          // Generate random values for regular simulation
+          ct1 = getRandomFloat(0.5, 6.0);
+          ct2 = getRandomFloat(0.5, 6.0);
+          ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
+          ctAvg = getRandomFloat(0.5, 15.0); // Keep CT_Avg within normal range
+          totalCurrent = generatePossiblyHighTotalCurrent();
+          newState = getRandomItem(MACHINE_STATES);
+          
+          // Make sure the new state is different from the previous state
+          while (newState === previousState) {
+            newState = getRandomItem(MACHINE_STATES);
+          }
+        }
       }
       
       const faultStatus = getRandomItem(FAULT_STATUSES);
@@ -119,13 +169,13 @@ export const useMockDataGenerator = () => {
       console.log(`Created new record for machine ${machineId}: state changed to ${newState} at ${insertTimestamp.toISOString()}`);
       
       // Check if we need to track machine going offline
-      if (generateOfflineRecord && currentData && !isMachineOffline(currentData)) {
+      if (ct1 === 0 && ct2 === 0 && ct3 === 0 && totalCurrent === 0 && currentData && !isMachineOffline(currentData)) {
         console.log(`Machine ${machineId} is going offline`);
         trackMachineOffline(machineId, insertTimestamp.toISOString());
       }
       
       // Check if machine is coming back online after being offline
-      if (!generateOfflineRecord && currentData && isMachineOffline(currentData)) {
+      if (!(ct1 === 0 && ct2 === 0 && ct3 === 0 && totalCurrent === 0) && currentData && isMachineOffline(currentData)) {
         console.log(`Machine ${machineId} is coming back online after being offline`);
         trackMachineOnline(machineId, insertTimestamp.toISOString());
       }
@@ -163,6 +213,9 @@ export const useMockDataGenerator = () => {
         clearInterval(intervalId);
         setIntervalId(null);
       }
+      setSimulatingDowntime(false);
+      setDowntimeCount(0);
+      setDowntimeMachineId('');
       toast({
         title: "Mock Data Generation Stopped",
         description: "No longer generating mock data"
@@ -173,7 +226,7 @@ export const useMockDataGenerator = () => {
       setIntervalId(id);
       toast({
         title: "Mock Data Generation Started",
-        description: "Generating one random machine state change every 5 seconds"
+        description: "Generating one random machine state change every 5 seconds. Will simulate machine downtime scenarios."
       });
       // Generate one immediately
       generateStateChange();

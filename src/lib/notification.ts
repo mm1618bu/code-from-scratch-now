@@ -308,11 +308,13 @@ export const offlineMachinesMap = new Map<string, OfflineMachineRecord>();
 
 // Check if a machine is considered offline based on current values
 export const isMachineOffline = (data: Record<string, any>): boolean => {
+  // Check if the state is explicitly "off" or if all current values are zero
   return (
-    data.CT1 === 0 &&
+    data.state === "off" ||
+    (data.CT1 === 0 &&
     data.CT2 === 0 &&
     data.CT3 === 0 &&
-    data.total_current === 0
+    data.total_current === 0)
   );
 };
 
