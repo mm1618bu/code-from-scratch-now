@@ -26,7 +26,7 @@ export const useSupabaseRealtime = (
     
     // If it's been less than 5 seconds since the last refresh,
     // schedule a refresh for when 5 seconds have passed
-    if (timeSinceLastRefresh < 5000) {
+    if (timeSinceLastRefresh < 10000) {
       pendingRefreshRef.current = true;
       
       // Clear any existing timeout
