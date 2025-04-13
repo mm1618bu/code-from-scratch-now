@@ -5,7 +5,6 @@ import { LiveDataItem } from '@/types/liveData';
 import { 
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -45,14 +44,6 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
   return (
     <div className="min-w-[1200px]">
       <Table className="border-collapse">
-        <TableCaption className="flex items-center justify-center gap-2">
-          Comprehensive Supabase liveData collection
-          {isAutoRefreshed && !loading && (
-            <span className="inline-flex items-center text-xs text-sage gap-1">
-              <RefreshCw className="h-3 w-3" /> Auto-refreshed
-            </span>
-          )}
-        </TableCaption>
         <TableHeader className="sticky top-0 bg-dark z-10">
           <TableRow className="bg-dark-foreground/20 border-b border-dark-foreground/30">
             <TableHead className="text-gray-400 whitespace-nowrap">Machine ID</TableHead>
@@ -132,6 +123,14 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
           )}
         </TableBody>
       </Table>
+      
+      {isAutoRefreshed && !loading && (
+        <div className="flex justify-center mt-2">
+          <span className="inline-flex items-center text-xs text-sage gap-1">
+            <RefreshCw className="h-3 w-3" /> Auto-refreshed
+          </span>
+        </div>
+      )}
     </div>
   );
 };
