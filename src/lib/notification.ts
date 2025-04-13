@@ -77,12 +77,8 @@ export const sendBrowserNotification = async (
     console.log('Sending browser notification:', title, options);
     new Notification(title, options);
   } else {
-    console.log('No permission for browser notifications, falling back to toast');
-    // Fallback to toast notification if permission not granted
-    toast({
-      title,
-      description: options?.body || '',
-    });
+    console.log('No permission for browser notifications');
+    // Removed fallback to toast notification
   }
 };
 
@@ -104,11 +100,7 @@ export const sendEmailNotification = async (
   
   if (!userData?.user?.email) {
     console.error('No user email found for sending notifications:', userData);
-    toast({
-      title: 'Email Notification Error',
-      description: 'No user email found. Please make sure you are logged in.',
-      variant: 'destructive',
-    });
+    // Removed toast notification here
     return;
   }
   
@@ -173,19 +165,12 @@ export const sendEmailNotification = async (
       console.log("Email function response:", result);
     }
     
-    toast({
-      title: 'Email Notification Sent',
-      description: `An email notification has been sent to ${userData.user.email}`,
-    });
+    // Removed success toast notification
     
     console.log('Email notification sent successfully');
   } catch (error) {
     console.error('Error sending email notification:', error);
-    toast({
-      title: 'Email Notification Error',
-      description: 'Failed to send email notification. See console for details.',
-      variant: 'destructive',
-    });
+    // Removed error toast notification
   }
 };
 
@@ -238,8 +223,6 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
   
   // Send email notification for high current alerts
   await sendEmailNotification(alert, true);
-  
-  // Removed toast notification here
 };
 
 // Handle machine state change notification
@@ -267,6 +250,4 @@ Total Current: ${stateChange.totalCurrent.toFixed(2)}`,
   
   // Send email notification
   await sendEmailNotification(stateChange);
-  
-  // Removed toast notification here
 };
