@@ -3,11 +3,17 @@ import { useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LiveDataItem } from '@/types/liveData';
-import { notifyMachineStateChange } from '@/lib/notification';
+import { 
+  notifyMachineStateChange,
+  isMachineOffline,
+  trackMachineOffline,
+  trackMachineOnline
+} from '@/lib/notification';
 
 export const useSupabaseRealtime = (
   onFetchData: () => void, // This parameter is completely ignored
-  onNewAlert: (data: LiveDataItem) => void
+  onNewAlert: (data: LiveDataItem) => void,
+  onDowntimeAlert?: (downtimeInfo: any) => void
 ) => {
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
@@ -29,7 +35,7 @@ export const useSupabaseRealtime = (
         event: 'INSERT', // Only listen for new inserts, not existing data 
         schema: 'public', 
         table: 'liveData' 
-      }, (payload) => {
+      }, async (payload) => {
         console.log('New record inserted, processing for alerts only:', payload);
         
         // Only process alerts for new inserts
@@ -59,12 +65,28 @@ export const useSupabaseRealtime = (
               timestamp: new Date(newData.created_at).toISOString(),
               totalCurrent: newData.total_current
             });
+          }
+          
+          // Check for machine offline/online transitions
+          if (payload.old && typeof payload.old === 'object') {
+            const prevData = payload.old as Record<string, any>;
             
-            toast({
-              title: `State Change for Machine ${newData.machineId}`,
-              description: `State changed from ${payload.old.state} to ${newData.state}`,
-              variant: "destructive",
-            });
+            // Check if machine is going offline
+            if (isMachineOffline(newData) && !isMachineOffline(prevData)) {
+              console.log(`Machine ${newData.machineId} went offline`);
+              trackMachineOffline(newData.machineId, newData.created_at);
+            }
+            
+            // Check if machine is coming back online
+            if (!isMachineOffline(newData) && isMachineOffline(prevData)) {
+              console.log(`Machine ${newData.machineId} came back online`);
+              const downtimeInfo = await trackMachineOnline(newData.machineId, newData.created_at);
+              
+              // If we have downtime info and the callback exists, call it
+              if (downtimeInfo && onDowntimeAlert) {
+                onDowntimeAlert(downtimeInfo);
+              }
+            }
           }
         }
       })
@@ -83,7 +105,7 @@ export const useSupabaseRealtime = (
         channelRef.current = null;
       }
     };
-  }, []); // Empty dependency array to run only once on mount
+  }, [onDowntimeAlert, onNewAlert]); // Add onDowntimeAlert to dependency array
 
   return; // No need to return anything
 };

@@ -1,8 +1,15 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
-import { notifyMachineStateChange, notifyTotalCurrentThresholdAlert } from '@/lib/notification';
+import { 
+  notifyMachineStateChange, 
+  notifyTotalCurrentThresholdAlert,
+  isMachineOffline,
+  trackMachineOffline,
+  trackMachineOnline
+} from '@/lib/notification';
 import { 
   MACHINE_IDS, 
   MACHINE_STATES, 
@@ -30,7 +37,7 @@ export const useMockDataGenerator = () => {
       // Get the current state for this machine to use as previous state
       const { data: currentData } = await supabase
         .from('liveData')
-        .select('state')
+        .select('state, CT1, CT2, CT3, total_current')
         .eq('machineId', machineId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -44,15 +51,31 @@ export const useMockDataGenerator = () => {
         newState = getRandomItem(MACHINE_STATES);
       }
       
-      // Generate random values for currents
-      const ct1 = getRandomFloat(0.5, 6.0);
-      const ct2 = getRandomFloat(0.5, 6.0);
-      const ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
+      // Decide if the machine should be offline (all currents zero)
+      // 15% chance of generating an offline record
+      const generateOfflineRecord = Math.random() < 0.15;
       
-      const ctAvg = getRandomFloat(0.5, 15.0); // Keep CT_Avg within normal range
+      // Generate appropriate current values
+      let ct1, ct2, ct3, ctAvg, totalCurrent;
       
-      // Use our helper function that might generate high values for Total Current
-      const totalCurrent = generatePossiblyHighTotalCurrent();
+      if (generateOfflineRecord) {
+        // Machine is offline - all currents are zero
+        ct1 = 0;
+        ct2 = 0;
+        ct3 = 0;
+        ctAvg = 0;
+        totalCurrent = 0;
+        newState = 'idle'; // Typically offline machines are in idle state
+      } else {
+        // Generate random values for currents
+        ct1 = getRandomFloat(0.5, 6.0);
+        ct2 = getRandomFloat(0.5, 6.0);
+        ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
+        ctAvg = getRandomFloat(0.5, 15.0); // Keep CT_Avg within normal range
+        
+        // Use our helper function that might generate high values for Total Current
+        totalCurrent = generatePossiblyHighTotalCurrent();
+      }
       
       const faultStatus = getRandomItem(FAULT_STATUSES);
       
@@ -62,7 +85,7 @@ export const useMockDataGenerator = () => {
         previousState,
         newState,
         timestamp: currentTimestamp.toISOString(),
-        totalCurrent // Add total current to the state change object
+        totalCurrent
       };
       
       // Create a fresh timestamp for this database operation
@@ -95,8 +118,22 @@ export const useMockDataGenerator = () => {
       
       console.log(`Created new record for machine ${machineId}: state changed to ${newState} at ${insertTimestamp.toISOString()}`);
       
-      // Only send state change notifications when generating mock data
-      notifyMachineStateChange(stateChange);
+      // Check if we need to track machine going offline
+      if (generateOfflineRecord && currentData && !isMachineOffline(currentData)) {
+        console.log(`Machine ${machineId} is going offline`);
+        trackMachineOffline(machineId, insertTimestamp.toISOString());
+      }
+      
+      // Check if machine is coming back online after being offline
+      if (!generateOfflineRecord && currentData && isMachineOffline(currentData)) {
+        console.log(`Machine ${machineId} is coming back online after being offline`);
+        trackMachineOnline(machineId, insertTimestamp.toISOString());
+      }
+      
+      // Only send state change notifications when generating mock data and it's a significant state change
+      if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {
+        notifyMachineStateChange(stateChange);
+      }
       
       // Only check for total current threshold when generating mock data
       if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {

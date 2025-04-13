@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, BellRing, ChevronLeft, AlertCircle, Clock, Calendar, Check, X } from 'lucide-react';
+import { Bell, BellRing, ChevronLeft, AlertCircle, Clock, Calendar, Check, X, PowerOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -9,8 +9,12 @@ import { cn } from '@/lib/utils';
 
 export interface AlertItem {
   machineId: string;
-  value: number;
+  value?: number;
   timestamp: string;
+  type: 'high-current' | 'downtime';
+  downtimeDuration?: number;
+  offTimestamp?: string;
+  onTimestamp?: string;
 }
 
 interface AlertMenuProps {
@@ -34,6 +38,16 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) {
+      return `${minutes} min${minutes !== 1 ? 's' : ''}`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours} hr${hours !== 1 ? 's' : ''} ${remainingMinutes} min${remainingMinutes !== 1 ? 's' : ''}`;
+    }
   };
   
   return (
@@ -105,11 +119,11 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 <DropdownMenuItem onClick={() => setFilterType("High Current Alert")}>
                   High Current Alert
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("Downtime Alert")}>
+                  Downtime Alert
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("Node Alert")}>
                   Node Alert
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("System Alert")}>
-                  System Alert
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -122,7 +136,14 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               </div>
             ) : (
               currentAlerts.map((alert, index) => {
-                const alertType = alert.value >= 15 ? "High Current Alert" : "Node Alert";
+                let alertType;
+                if (alert.type === 'high-current') {
+                  alertType = "High Current Alert";
+                } else if (alert.type === 'downtime') {
+                  alertType = "Downtime Alert";
+                } else {
+                  alertType = "Node Alert";
+                }
                 
                 // Skip if filtered and not matching the selected filter
                 if (filterType !== "All Activity" && filterType !== alertType) {
@@ -139,30 +160,56 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        {alert.type === 'high-current' ? (
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <PowerOff className="h-4 w-4 text-amber-500" />
+                        )}
                         <span className="text-xs text-zinc-500">{alertType}</span>
                       </div>
-                      <span className="text-xs text-zinc-400">Today · {formatTimestamp(alert.timestamp)}</span>
+                      <span className="text-xs text-zinc-400">Today · {alert.type === 'downtime' && alert.onTimestamp ? formatTimestamp(alert.onTimestamp) : formatTimestamp(alert.timestamp)}</span>
                     </div>
                     
                     <div className="mb-2">
                       <div className="font-medium text-zinc-800">
-                        {alertType === "High Current Alert" 
+                        {alert.type === 'high-current' 
                           ? `High Current on ${alert.machineId}` 
-                          : `Machine ${alert.machineId}`}
+                          : alert.type === 'downtime' 
+                            ? `${alert.machineId} Downtime Alert` 
+                            : `Machine ${alert.machineId}`}
                       </div>
-                      <div className="text-sm text-zinc-600">
-                        {alertType === "High Current Alert" ? "Current Threshold Exceeded" : "Node Alert"}
-                      </div>
-                      <div className="text-xs text-zinc-500 mt-1">
-                        {`Total Current: ${alert.value.toFixed(2)} A`}
-                        {alert.value >= 15 && 
-                          <span className="text-red-500 ml-1">(Above threshold of 15.0 A)</span>
-                        }
-                      </div>
+                      
+                      {alert.type === 'high-current' && (
+                        <div className="text-sm text-zinc-600">
+                          Current Threshold Exceeded
+                          <div className="text-xs text-zinc-500 mt-1">
+                            {`Total Current: ${alert.value?.toFixed(2)} A`}
+                            {alert.value && alert.value >= 15 && 
+                              <span className="text-red-500 ml-1">(Above threshold of 15.0 A)</span>
+                            }
+                          </div>
+                        </div>
+                      )}
+                      
+                      {alert.type === 'downtime' && (
+                        <div className="text-sm text-zinc-600">
+                          Machine was offline
+                          <div className="text-xs text-zinc-500 mt-1 flex flex-col gap-1">
+                            <span>
+                              <span className="font-medium">Duration:</span> {formatDuration(alert.downtimeDuration || 0)}
+                            </span>
+                            <span>
+                              <span className="font-medium">From:</span> {new Date(alert.offTimestamp || '').toLocaleString()}
+                            </span>
+                            <span>
+                              <span className="font-medium">To:</span> {new Date(alert.onTimestamp || '').toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
-                    {alert.value >= 15 && (
+                    {(alert.type === 'high-current' && alert.value && alert.value >= 15) || alert.type === 'downtime' ? (
                       <div className="flex gap-2 mt-3">
                         <Button 
                           className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-1 px-4 rounded text-sm h-9"
@@ -176,7 +223,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           <X className="h-4 w-4 mr-1" /> Ignore
                         </Button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 );
               })

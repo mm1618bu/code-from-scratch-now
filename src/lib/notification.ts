@@ -1,5 +1,4 @@
 
-import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 // Types for our notification system
@@ -15,6 +14,13 @@ export interface TotalCurrentAlertNotification {
   machineId: string;
   totalCurrent: number;
   timestamp: string;
+}
+
+export interface MachineDowntimeNotification {
+  machineId: string;
+  offTimestamp: string;
+  onTimestamp: string;
+  downtimeDuration: number; // in minutes
 }
 
 export interface NotificationPreference {
@@ -78,18 +84,17 @@ export const sendBrowserNotification = async (
     new Notification(title, options);
   } else {
     console.log('No permission for browser notifications');
-    // Removed fallback to toast notification
   }
 };
 
 // Request to send an email notification via Supabase edge function
 export const sendEmailNotification = async (
-  data: MachineStateChange | TotalCurrentAlertNotification,
-  isTotalCurrentAlert: boolean = false
+  data: MachineStateChange | TotalCurrentAlertNotification | MachineDowntimeNotification,
+  notificationType: 'STATE_CHANGE' | 'TOTAL_CURRENT_THRESHOLD' | 'MACHINE_DOWNTIME' = 'STATE_CHANGE'
 ): Promise<void> => {
   const preferences = getNotificationPreferences();
   
-  console.log("Email notification requested. Preferences:", preferences);
+  console.log(`${notificationType} email notification requested. Preferences:`, preferences);
   
   if (!preferences.email) {
     console.log('Email notifications disabled by user preferences');
@@ -100,14 +105,13 @@ export const sendEmailNotification = async (
   
   if (!userData?.user?.email) {
     console.error('No user email found for sending notifications:', userData);
-    // Removed toast notification here
     return;
   }
   
-  console.log("Sending email notification to:", userData.user.email);
+  console.log(`Sending ${notificationType} email notification to:`, userData.user.email);
   
   try {
-    if (isTotalCurrentAlert) {
+    if (notificationType === 'TOTAL_CURRENT_THRESHOLD') {
       const totalCurrentAlert = data as TotalCurrentAlertNotification;
       
       // Only send if total current is over threshold
@@ -125,6 +129,28 @@ export const sendEmailNotification = async (
           timestamp: totalCurrentAlert.timestamp,
           alertType: 'TOTAL_CURRENT_THRESHOLD',
           totalCurrent: totalCurrentAlert.totalCurrent
+        }
+      });
+      
+      if (error) {
+        console.error("Error invoking send-notification-email:", error);
+        throw error;
+      }
+      
+      console.log("Email function response:", result);
+    } else if (notificationType === 'MACHINE_DOWNTIME') {
+      const downtimeAlert = data as MachineDowntimeNotification;
+      
+      console.log("Invoking send-notification-email function for MACHINE_DOWNTIME");
+      
+      const { data: result, error } = await supabase.functions.invoke('send-notification-email', {
+        body: {
+          email: userData.user.email,
+          machineId: downtimeAlert.machineId,
+          offTimestamp: downtimeAlert.offTimestamp,
+          onTimestamp: downtimeAlert.onTimestamp,
+          downtimeDuration: downtimeAlert.downtimeDuration,
+          alertType: 'MACHINE_DOWNTIME'
         }
       });
       
@@ -165,12 +191,9 @@ export const sendEmailNotification = async (
       console.log("Email function response:", result);
     }
     
-    // Removed success toast notification
-    
     console.log('Email notification sent successfully');
   } catch (error) {
     console.error('Error sending email notification:', error);
-    // Removed error toast notification
   }
 };
 
@@ -208,6 +231,28 @@ export const sendPushNotification = async (alert: TotalCurrentAlertNotification)
   }
 };
 
+// Machine downtime notification
+export const notifyMachineDowntime = async (downtimeInfo: MachineDowntimeNotification): Promise<void> => {
+  console.log(`Triggering notification for Machine Downtime: ${downtimeInfo.machineId}, duration: ${downtimeInfo.downtimeDuration} minutes`);
+  
+  // Log to console
+  console.log(`Machine ${downtimeInfo.machineId} was offline for ${downtimeInfo.downtimeDuration} minutes (from ${new Date(downtimeInfo.offTimestamp).toLocaleString()} to ${new Date(downtimeInfo.onTimestamp).toLocaleString()})`);
+  
+  // Send browser notification
+  await sendBrowserNotification(
+    `Machine ${downtimeInfo.machineId} Downtime Alert`,
+    {
+      body: `Machine was offline for ${downtimeInfo.downtimeDuration} minutes`,
+      icon: '/favicon.ico',
+      tag: `machine-downtime-${downtimeInfo.machineId}`,
+      requireInteraction: false,
+    }
+  );
+  
+  // Send email notification
+  await sendEmailNotification(downtimeInfo, 'MACHINE_DOWNTIME');
+};
+
 // Handle Total Current threshold alert
 export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
   // Skip if total current is below threshold
@@ -222,7 +267,7 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
   console.log(`Total Current Alert for Machine ${alert.machineId}: ${alert.totalCurrent.toFixed(2)} exceeds threshold of 15.0`);
   
   // Send email notification for high current alerts
-  await sendEmailNotification(alert, true);
+  await sendEmailNotification(alert, 'TOTAL_CURRENT_THRESHOLD');
 };
 
 // Handle machine state change notification
@@ -249,5 +294,71 @@ Total Current: ${stateChange.totalCurrent.toFixed(2)}`,
   );
   
   // Send email notification
-  await sendEmailNotification(stateChange);
+  await sendEmailNotification(stateChange, 'STATE_CHANGE');
+};
+
+// In-memory storage for tracking machine offline status
+interface OfflineMachineRecord {
+  machineId: string;
+  offTimestamp: string;
+  isStillOffline: boolean;
+}
+
+// In-memory map to track machine offline status
+export const offlineMachinesMap = new Map<string, OfflineMachineRecord>();
+
+// Check if a machine is considered offline based on current values
+export const isMachineOffline = (data: Record<string, any>): boolean => {
+  return (
+    data.CT1 === 0 &&
+    data.CT2 === 0 &&
+    data.CT3 === 0 &&
+    data.total_current === 0
+  );
+};
+
+// Track machine going offline
+export const trackMachineOffline = (machineId: string, timestamp: string): void => {
+  // Only track if not already tracking this machine
+  if (!offlineMachinesMap.has(machineId)) {
+    console.log(`Machine ${machineId} went offline at ${timestamp}`);
+    offlineMachinesMap.set(machineId, {
+      machineId,
+      offTimestamp: timestamp,
+      isStillOffline: true
+    });
+  }
+};
+
+// Track machine coming back online and create notification
+export const trackMachineOnline = async (machineId: string, timestamp: string): Promise<void> => {
+  // Check if we were tracking this machine being offline
+  const offlineRecord = offlineMachinesMap.get(machineId);
+  
+  if (offlineRecord && offlineRecord.isStillOffline) {
+    // Calculate downtime in minutes
+    const offTime = new Date(offlineRecord.offTimestamp).getTime();
+    const onTime = new Date(timestamp).getTime();
+    const downtimeMinutes = Math.round((onTime - offTime) / (1000 * 60));
+    
+    console.log(`Machine ${machineId} is back online after ${downtimeMinutes} minutes`);
+    
+    // Update record to no longer being offline
+    offlineRecord.isStillOffline = false;
+    offlineMachinesMap.set(machineId, offlineRecord);
+    
+    // Create and send downtime notification
+    const downtimeInfo: MachineDowntimeNotification = {
+      machineId,
+      offTimestamp: offlineRecord.offTimestamp,
+      onTimestamp: timestamp,
+      downtimeDuration: downtimeMinutes
+    };
+    
+    await notifyMachineDowntime(downtimeInfo);
+    
+    return downtimeInfo;
+  }
+  
+  return undefined;
 };

@@ -1,8 +1,8 @@
-
 import { useState } from 'react';
 import { AlertItem } from '@/components/LiveData/AlertMenu';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
 import { LiveDataItem } from '@/types/liveData';
+import { MachineDowntimeNotification } from '@/lib/notification';
 
 export const useAlerts = () => {
   const [alertCount, setAlertCount] = useState(0);
@@ -16,13 +16,15 @@ export const useAlerts = () => {
       const newAlerts = highCurrentItems.map(item => ({
         machineId: item.machineId,
         value: item.total_current,
-        timestamp: new Date(item.created_at).toLocaleString()
+        timestamp: new Date(item.created_at).toLocaleString(),
+        type: 'high-current' as const
       }));
       
       setCurrentAlerts(prev => {
         const combined = [...prev, ...newAlerts];
         const unique = combined.reduce((acc, curr) => {
-          acc[curr.machineId] = curr;
+          const key = `${curr.type}-${curr.machineId}`;
+          acc[key] = curr;
           return acc;
         }, {} as Record<string, AlertItem>);
         
@@ -31,7 +33,6 @@ export const useAlerts = () => {
       
       setAlertCount(prev => prev + highCurrentItems.length);
       
-      // We're only adding to the alerts dropdown and not showing toasts
       highCurrentItems.forEach(item => {
         notifyTotalCurrentThresholdAlert({
           machineId: item.machineId,
@@ -39,8 +40,6 @@ export const useAlerts = () => {
           timestamp: new Date(item.created_at).toISOString()
         });
       });
-      
-      // Removed toast notification here
     }
   };
 
@@ -49,11 +48,13 @@ export const useAlerts = () => {
       const newAlert = {
         machineId: newData.machineId,
         value: newData.total_current,
-        timestamp: new Date(newData.created_at).toLocaleString()
+        timestamp: new Date(newData.created_at).toLocaleString(),
+        type: 'high-current' as const
       };
       
       setCurrentAlerts(prev => {
-        const filtered = prev.filter(a => a.machineId !== newAlert.machineId);
+        const key = `high-current-${newAlert.machineId}`;
+        const filtered = prev.filter(a => !(a.type === 'high-current' && a.machineId === newAlert.machineId));
         return [...filtered, newAlert];
       });
       
@@ -64,9 +65,26 @@ export const useAlerts = () => {
         totalCurrent: newData.total_current,
         timestamp: new Date(newData.created_at).toISOString()
       });
-      
-      // Removed toast notification here
     }
+  };
+
+  const addDowntimeAlert = (downtimeInfo: MachineDowntimeNotification) => {
+    const newAlert: AlertItem = {
+      machineId: downtimeInfo.machineId,
+      timestamp: new Date(downtimeInfo.onTimestamp).toLocaleString(),
+      type: 'downtime',
+      downtimeDuration: downtimeInfo.downtimeDuration,
+      offTimestamp: downtimeInfo.offTimestamp,
+      onTimestamp: downtimeInfo.onTimestamp
+    };
+    
+    setCurrentAlerts(prev => {
+      return [...prev, newAlert];
+    });
+    
+    setAlertCount(prev => prev + 1);
+    
+    setShowAlerts(true);
   };
 
   const clearAlerts = () => {
@@ -82,6 +100,7 @@ export const useAlerts = () => {
     currentAlerts,
     clearAlerts,
     checkForAlerts,
-    processAlert
+    processAlert,
+    addDowntimeAlert
   };
 };

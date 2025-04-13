@@ -4,6 +4,7 @@ import { useAlerts } from '@/hooks/useAlerts';
 import { useDataFetching } from '@/hooks/useDataFetching';
 import { useDataFiltering } from '@/hooks/useDataFiltering';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
+import { MachineDowntimeNotification } from '@/lib/notification';
 
 export const useLiveData = () => {
   const {
@@ -13,7 +14,8 @@ export const useLiveData = () => {
     currentAlerts,
     clearAlerts,
     checkForAlerts,
-    processAlert
+    processAlert,
+    addDowntimeAlert
   } = useAlerts();
 
   const {
@@ -38,13 +40,19 @@ export const useLiveData = () => {
     itemsPerPage
   } = useDataFiltering(liveData);
 
-  // Set up realtime for alert processing only
-  // The auto-refresh is handled through the interval in useDataFetching
+  // Define callback for downtime alerts
+  const handleDowntimeAlert = useCallback((downtimeInfo: MachineDowntimeNotification) => {
+    console.log('Handling downtime alert:', downtimeInfo);
+    addDowntimeAlert(downtimeInfo);
+  }, [addDowntimeAlert]);
+
+  // Set up realtime for alert processing only including downtime alerts
   useSupabaseRealtime(
     () => {
       console.log('This function is never called - alerts only');
     }, 
-    processAlert // Only process alerts
+    processAlert, // Process high current alerts
+    handleDowntimeAlert // Process downtime alerts
   );
 
   return {
