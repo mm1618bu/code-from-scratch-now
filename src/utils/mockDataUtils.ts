@@ -1,4 +1,3 @@
-
 // Constants for random selection
 export const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby', 'off'];
 export const MACHINE_IDS = ['MACH001', 'MACH002', 'MACH003', 'MACH004', 'MACH005', 'MACH006', 'MACH007', 'MACH008'];
@@ -26,13 +25,7 @@ export const generatePossiblyHighTotalCurrent = (): number => {
   return getRandomFloat(1.5, TOTAL_CURRENT_THRESHOLD - 1.0);
 };
 
-// Helper to check if a machine is considered offline
+// Helper to check if a machine is considered offline - simplified to just check state
 export const isMachineOffline = (data: Record<string, any>): boolean => {
-  return (
-    data.state === "off" ||
-    (data.CT1 === 0 &&
-    data.CT2 === 0 &&
-    data.CT3 === 0 &&
-    data.total_current === 0)
-  );
+  return data.state === "off";
 };

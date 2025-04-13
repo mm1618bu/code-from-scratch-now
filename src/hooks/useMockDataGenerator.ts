@@ -44,15 +44,26 @@ export const useMockDataGenerator = () => {
         newState = getRandomItem(MACHINE_STATES);
       }
       
-      // Generate random values for currents
-      const ct1 = getRandomFloat(0, 6.0);
-      const ct2 = getRandomFloat(0, 6.0);
-      const ct3 = Math.floor(getRandomFloat(0, 6.0)); // Integer for CT3 (bigint in DB)
+      // Initialize current values
+      let ct1, ct2, ct3, ctAvg, totalCurrent;
       
-      const ctAvg = getRandomFloat(0, 15.0); // Keep CT_Avg within normal range
-      
-      // Use our helper function that might generate high values for Total Current
-      const totalCurrent = generatePossiblyHighTotalCurrent();
+      // If state is "off", set all current values to 0
+      if (newState === 'off') {
+        ct1 = 0;
+        ct2 = 0;
+        ct3 = 0;
+        ctAvg = 0;
+        totalCurrent = 0;
+      } else {
+        // Generate random values for currents when state is not "off"
+        ct1 = getRandomFloat(0, 6.0);
+        ct2 = getRandomFloat(0, 6.0);
+        ct3 = Math.floor(getRandomFloat(0, 6.0)); // Integer for CT3 (bigint in DB)
+        ctAvg = getRandomFloat(0, 15.0); // Keep CT_Avg within normal range
+        
+        // Use our helper function that might generate high values for Total Current
+        totalCurrent = generatePossiblyHighTotalCurrent();
+      }
       
       const faultStatus = getRandomItem(FAULT_STATUSES);
       
