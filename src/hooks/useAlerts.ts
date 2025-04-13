@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { AlertItem } from '@/components/LiveData/AlertMenu';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
@@ -79,11 +80,23 @@ export const useAlerts = () => {
     };
     
     setCurrentAlerts(prev => {
+      // Make sure we don't add duplicate downtime alerts for the same machine and timeframe
+      const key = `downtime-${newAlert.machineId}-${newAlert.offTimestamp}`;
+      const exists = prev.some(a => 
+        a.type === 'downtime' && 
+        a.machineId === newAlert.machineId && 
+        a.offTimestamp === newAlert.offTimestamp
+      );
+      
+      if (exists) {
+        return prev;
+      }
       return [...prev, newAlert];
     });
     
     setAlertCount(prev => prev + 1);
     
+    // Automatically show the alerts panel when we get a downtime alert
     setShowAlerts(true);
   };
 

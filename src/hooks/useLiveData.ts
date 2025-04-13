@@ -43,8 +43,15 @@ export const useLiveData = () => {
   // Define callback for downtime alerts
   const handleDowntimeAlert = useCallback((downtimeInfo: MachineDowntimeNotification) => {
     console.log('Handling downtime alert:', downtimeInfo);
-    addDowntimeAlert(downtimeInfo);
-  }, [addDowntimeAlert]);
+    
+    // Only display the alert if it's a significant downtime (more than 0 minutes)
+    if (downtimeInfo.downtimeDuration > 0) {
+      addDowntimeAlert(downtimeInfo);
+      
+      // Automatically open the alerts panel for downtime notifications
+      setShowAlerts(true);
+    }
+  }, [addDowntimeAlert, setShowAlerts]);
 
   // Set up realtime for alert processing only including downtime alerts
   useSupabaseRealtime(

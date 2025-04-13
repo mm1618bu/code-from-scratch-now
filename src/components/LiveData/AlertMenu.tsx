@@ -54,6 +54,13 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   const downtimeAlertCount = currentAlerts.filter(a => a.type === 'downtime').length;
   const highCurrentAlertCount = currentAlerts.filter(a => a.type === 'high-current').length;
   
+  // Sort alerts to show newest first
+  const sortedAlerts = [...currentAlerts].sort((a, b) => {
+    const dateA = a.onTimestamp ? new Date(a.onTimestamp).getTime() : new Date(a.timestamp).getTime();
+    const dateB = b.onTimestamp ? new Date(b.onTimestamp).getTime() : new Date(b.timestamp).getTime();
+    return dateB - dateA;
+  });
+  
   return (
     <Popover open={showAlerts} onOpenChange={setShowAlerts}>
       <PopoverTrigger asChild>
@@ -131,12 +138,12 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
           </div>
           
           <div className="max-h-[500px] overflow-y-auto">
-            {currentAlerts.length === 0 ? (
+            {sortedAlerts.length === 0 ? (
               <div className="p-4 text-center text-zinc-500">
                 No alerts to display
               </div>
             ) : (
-              currentAlerts.map((alert, index) => {
+              sortedAlerts.map((alert, index) => {
                 let alertType;
                 if (alert.type === 'high-current') {
                   alertType = "High Current Alert";
@@ -153,7 +160,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 
                 return (
                   <div 
-                    key={`${alert.machineId}-${index}`}
+                    key={`${alert.machineId}-${index}-${alert.type}-${alert.timestamp}`}
                     className={cn(
                       "p-4 border-b border-zinc-200", 
                       index % 2 === 0 ? "bg-white" : "bg-zinc-50",
@@ -169,7 +176,12 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                         )}
                         <span className="text-xs text-zinc-500">{alertType}</span>
                       </div>
-                      <span className="text-xs text-zinc-400">Today · {alert.type === 'downtime' && alert.onTimestamp ? formatTimestamp(alert.onTimestamp) : formatTimestamp(alert.timestamp)}</span>
+                      <span className="text-xs text-zinc-400">
+                        {new Date(alert.type === 'downtime' && alert.onTimestamp ? 
+                          alert.onTimestamp : alert.timestamp).toLocaleDateString()} · 
+                        {formatTimestamp(alert.type === 'downtime' && alert.onTimestamp ? 
+                          alert.onTimestamp : alert.timestamp)}
+                      </span>
                     </div>
                     
                     <div className="mb-2">
@@ -195,8 +207,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                         <div className="text-sm text-zinc-600">
                           Machine was offline
                           <div className="text-xs text-zinc-500 mt-1 flex flex-col gap-1">
-                            <span>
-                              <span className="font-medium">Duration:</span> {formatDuration(alert.downtimeDuration || 0)}
+                            <span className="font-semibold text-blue-700">
+                              Offline for {formatDuration(alert.downtimeDuration || 0)}
                             </span>
                             <span>
                               <span className="font-medium">From:</span> {new Date(alert.offTimestamp || '').toLocaleString()}

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +27,7 @@ export const useMockDataGenerator = () => {
   const [simulatingDowntime, setSimulatingDowntime] = useState(false);
   const [downtimeMachineId, setDowntimeMachineId] = useState('');
   const [downtimeCount, setDowntimeCount] = useState(0);
+  const [downtimeStartTime, setDowntimeStartTime] = useState<string | null>(null);
 
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
@@ -61,6 +63,13 @@ export const useMockDataGenerator = () => {
           ctAvg = 0;
           totalCurrent = 0;
           newState = 'off'; // Use "off" state specifically for offline machines
+          
+          // Save the start time of downtime if this is the first offline record
+          if (downtimeCount === 0) {
+            setDowntimeStartTime(currentTimestamp.toISOString());
+            console.log(`Machine ${machineId} went offline at ${currentTimestamp.toISOString()}`);
+          }
+          
           setDowntimeCount(prev => prev + 1);
           console.log(`Simulating machine ${machineId} in offline state (${downtimeCount + 1}/3)`);
         } else if (downtimeCount >= 3 && downtimeCount < 6) {
@@ -71,6 +80,19 @@ export const useMockDataGenerator = () => {
           ctAvg = getRandomFloat(0.5, 15.0);
           totalCurrent = getRandomFloat(1.5, 15.0);
           newState = 'running'; // Machine should be in running state when back online
+          
+          // If this is the first online record after being offline, calculate downtime
+          if (downtimeCount === 3 && downtimeStartTime) {
+            const startTime = new Date(downtimeStartTime).getTime();
+            const endTime = currentTimestamp.getTime();
+            const downtimeMinutes = Math.round((endTime - startTime) / (1000 * 60));
+            
+            console.log(`Machine ${machineId} was offline for ${downtimeMinutes} minutes`);
+            
+            // Record that the machine has come back online
+            await trackMachineOnline(machineId, currentTimestamp.toISOString());
+          }
+          
           setDowntimeCount(prev => prev + 1);
           console.log(`Simulating machine ${machineId} back online (${downtimeCount - 2}/3)`);
           
@@ -80,11 +102,7 @@ export const useMockDataGenerator = () => {
             setSimulatingDowntime(false);
             setDowntimeCount(0);
             setDowntimeMachineId('');
-            
-            toast({
-              title: "Downtime Simulation Complete",
-              description: `Machine ${machineId} has gone through offline and online states`,
-            });
+            setDowntimeStartTime(null);
           }
         }
       } else {
@@ -95,6 +113,7 @@ export const useMockDataGenerator = () => {
           setSimulatingDowntime(true);
           setDowntimeCount(0);
           setDowntimeMachineId(machineId);
+          setDowntimeStartTime(currentTimestamp.toISOString());
           
           // Machine goes offline in the first record
           ct1 = 0;
@@ -104,7 +123,10 @@ export const useMockDataGenerator = () => {
           totalCurrent = 0;
           newState = 'off'; // Use "off" state specifically for offline machines
           
-          console.log(`Starting downtime simulation for machine ${machineId}`);
+          console.log(`Starting downtime simulation for machine ${machineId} at ${currentTimestamp.toISOString()}`);
+          
+          // Track that the machine has gone offline for notification purposes
+          trackMachineOffline(machineId, currentTimestamp.toISOString());
         } else {
           // Generate random values for regular simulation
           ct1 = getRandomFloat(0.5, 6.0);
