@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import { Progress } from "@/components/ui/progress";
 
 interface LiveDataTableProps {
   loading: boolean;
@@ -52,8 +53,12 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
           {loading ? (
             <TableRow>
               <TableCell colSpan={13} className="text-center py-8">
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-4">
                   <RefreshCw className="h-8 w-8 animate-spin text-sage" />
+                  <div className="w-64">
+                    <Progress value={75} className="h-2 bg-dark-foreground/30" />
+                  </div>
+                  <p className="text-sage">Loading data from Supabase...</p>
                 </div>
               </TableCell>
             </TableRow>

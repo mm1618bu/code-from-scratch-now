@@ -19,7 +19,8 @@ export const useLiveData = () => {
   const {
     liveData,
     loading,
-    fetchLiveData
+    fetchLiveData,
+    fetchInitialData
   } = useDataFetching(checkForAlerts);
 
   const {
@@ -48,6 +49,7 @@ export const useLiveData = () => {
     liveData,
     loading,
     fetchLiveData,
+    fetchInitialData,
     
     // Filtering and pagination
     stateFilter,
