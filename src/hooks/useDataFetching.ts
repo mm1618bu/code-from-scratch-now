@@ -29,32 +29,48 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
       
       if (data) {
         console.log(`Fetched ${data.length} initial records`);
-        setLiveData(data as LiveDataItem[]);
-        onCheckAlerts(data as LiveDataItem[]);
         
-        // Only show toast for manual refreshes, not initial load
-        if (initialLoadDone) {
-          toast({
-            title: "Data Refreshed",
-            description: `Loaded ${data.length} records from Supabase`,
-          });
-        }
+        // Add a small artificial delay to make loading more visible (min 1 second)
+        const startTime = Date.now();
+        const minimumLoadTime = 1000; // 1 second in milliseconds
         
-        setInitialLoadDone(true);
+        setTimeout(() => {
+          setLiveData(data as LiveDataItem[]);
+          onCheckAlerts(data as LiveDataItem[]);
+          
+          // Only show toast for manual refreshes, not initial load
+          if (initialLoadDone) {
+            toast({
+              title: "Data Refreshed",
+              description: `Loaded ${data.length} records from Supabase`,
+            });
+          }
+          
+          setInitialLoadDone(true);
+          setLoading(false);
+        }, Math.max(0, minimumLoadTime - (Date.now() - startTime)));
       } else {
         console.log('No data returned from Supabase');
+        
+        // Still add minimum delay even if no data
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
       }
     } catch (error) {
       console.error('Error fetching initial live data:', error);
-      if (initialLoadDone) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch live data",
-          variant: "destructive"
-        });
-      }
-    } finally {
-      setLoading(false);
+      
+      // Add minimum delay even on error
+      setTimeout(() => {
+        if (initialLoadDone) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch live data",
+            variant: "destructive"
+          });
+        }
+        setLoading(false);
+      }, 1000);
     }
   }, [initialLoadDone, onCheckAlerts, toast]);
 
@@ -77,25 +93,42 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
       
       if (data) {
         console.log(`Fetched ${data.length} complete records`);
-        setLiveData(data as LiveDataItem[]);
-        onCheckAlerts(data as LiveDataItem[]);
         
-        toast({
-          title: "Data Refreshed",
-          description: `Loaded ${data.length} records from Supabase (max 500)`,
-        });
+        // Add a small artificial delay to make loading more visible (min 1 second)
+        const startTime = Date.now();
+        const minimumLoadTime = 1000; // 1 second in milliseconds
+        
+        setTimeout(() => {
+          setLiveData(data as LiveDataItem[]);
+          onCheckAlerts(data as LiveDataItem[]);
+          
+          toast({
+            title: "Data Refreshed",
+            description: `Loaded ${data.length} records from Supabase (max 500)`,
+          });
+          
+          setLoading(false);
+        }, Math.max(0, minimumLoadTime - (Date.now() - startTime)));
       } else {
         console.log('No data returned from Supabase');
+        
+        // Still add minimum delay even if no data
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
       }
     } catch (error) {
       console.error('Error fetching all live data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch live data",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+      
+      // Add minimum delay even on error
+      setTimeout(() => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch live data",
+          variant: "destructive"
+        });
+        setLoading(false);
+      }, 1000);
     }
   }, [onCheckAlerts, toast]);
 
