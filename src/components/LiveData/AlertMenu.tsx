@@ -31,56 +31,9 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   const [readStatus, setReadStatus] = React.useState(false);
   const [filterType, setFilterType] = React.useState<string>("All Activity");
   
-  const getAlertTypeIcon = (index: number) => {
-    // Rotate between different alert types for demo purposes
-    const iconType = index % 3;
-    switch (iconType) {
-      case 0: return <AlertCircle className="h-4 w-4 text-gray-400" />;
-      case 1: return <Clock className="h-4 w-4 text-gray-400" />;
-      case 2: return <Calendar className="h-4 w-4 text-gray-400" />;
-      default: return <AlertCircle className="h-4 w-4 text-gray-400" />;
-    }
-  };
-  
-  const getAlertTitle = (index: number, machineId: string) => {
-    // Rotate between different alert titles for demo purposes
-    const titleType = index % 4;
-    switch (titleType) {
-      case 0: return `Breakdown Detected`;
-      case 1: return `${machineId} - Resin`;
-      case 2: return `STARRAG - ${machineId}`;
-      case 3: return `WaterJet - ${machineId}`;
-      default: return `Machine ${machineId}`;
-    }
-  };
-  
-  const getAlertSubtitle = (index: number) => {
-    // Rotate between different alert subtitles for demo purposes
-    const subtitleType = index % 4;
-    switch (subtitleType) {
-      case 0: return "Connectivity";
-      case 1: return "Utilization";
-      case 2: return "Upcoming Reservation";
-      case 3: return "Total Current";
-      default: return "Alert";
-    }
-  };
-  
-  const getAlertDescription = (index: number, value: number) => {
-    // Rotate between different alert descriptions for demo purposes
-    const descType = index % 4;
-    switch (descType) {
-      case 0: 
-        return "We noticed some unusual activity between 1:00 PM - 1:30 PM, was this a breakdown";
-      case 1:
-        return "Node disconnected at 12:55 AM";
-      case 2:
-        return "Your Equipment is Scheduled for a Task at 2:00 PM, 12/9/2023";
-      case 3:
-        return `Your Equipment was under utilized today compared to yesterday (${value.toFixed(2)} A)`;
-      default:
-        return `Total Current: ${value.toFixed(2)} A`;
-    }
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
   
   return (
@@ -145,70 +98,89 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   <ChevronLeft className="h-3 w-3 rotate-270 text-zinc-400" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[200px]">
+              <DropdownMenuContent className="w-[200px] bg-white">
                 <DropdownMenuItem onClick={() => setFilterType("All Activity")}>
                   All Activity
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Analytics Alert")}>
-                  Analytics Alert
+                <DropdownMenuItem onClick={() => setFilterType("High Current Alert")}>
+                  High Current Alert
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("Node Alert")}>
                   Node Alert
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Schedule Alert")}>
-                  Schedule Alert
+                <DropdownMenuItem onClick={() => setFilterType("System Alert")}>
+                  System Alert
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
           
           <div className="max-h-[500px] overflow-y-auto">
-            {currentAlerts.map((alert, index) => {
-              const alertType = index % 3 === 0 ? "Analytics Alert" : 
-                              index % 3 === 1 ? "Node Alert" : "Schedule Alert";
-              const showAlert = filterType === "All Activity" || filterType === alertType;
-              
-              if (!showAlert) return null;
-              
-              return (
-                <div 
-                  key={`${alert.machineId}-${index}`}
-                  className={cn(
-                    "p-4 border-b border-zinc-200", 
-                    index % 2 === 0 ? "bg-white" : "bg-zinc-50"
-                  )}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {getAlertTypeIcon(index)}
-                      <span className="text-xs text-zinc-500">{alertType}</span>
+            {currentAlerts.length === 0 ? (
+              <div className="p-4 text-center text-zinc-500">
+                No alerts to display
+              </div>
+            ) : (
+              currentAlerts.map((alert, index) => {
+                const alertType = alert.value >= 15 ? "High Current Alert" : "Node Alert";
+                
+                // Skip if filtered and not matching the selected filter
+                if (filterType !== "All Activity" && filterType !== alertType) {
+                  return null;
+                }
+                
+                return (
+                  <div 
+                    key={`${alert.machineId}-${index}`}
+                    className={cn(
+                      "p-4 border-b border-zinc-200", 
+                      index % 2 === 0 ? "bg-white" : "bg-zinc-50"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        <span className="text-xs text-zinc-500">{alertType}</span>
+                      </div>
+                      <span className="text-xs text-zinc-400">Today · {formatTimestamp(alert.timestamp)}</span>
                     </div>
-                    <span className="text-xs text-zinc-400">Today · {new Date(alert.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="font-medium text-zinc-800">{getAlertTitle(index, alert.machineId)}</div>
-                    <div className="text-sm text-zinc-600">{getAlertSubtitle(index)}</div>
-                    <div className="text-xs text-zinc-500 mt-1">{getAlertDescription(index, alert.value)}</div>
-                  </div>
-                  
-                  {index % 4 === 0 && (
-                    <div className="flex gap-2 mt-3">
-                      <Button 
-                        className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-1 px-4 rounded text-sm h-9"
-                      >
-                        <Check className="h-4 w-4 mr-1" /> Yes
-                      </Button>
-                      <Button
-                        className="bg-red-400 hover:bg-red-500 text-white font-medium py-1 px-4 rounded text-sm h-9"
-                      >
-                        <X className="h-4 w-4 mr-1" /> No
-                      </Button>
+                    
+                    <div className="mb-2">
+                      <div className="font-medium text-zinc-800">
+                        {alertType === "High Current Alert" 
+                          ? `High Current on ${alert.machineId}` 
+                          : `Machine ${alert.machineId}`}
+                      </div>
+                      <div className="text-sm text-zinc-600">
+                        {alertType === "High Current Alert" ? "Current Threshold Exceeded" : "Node Alert"}
+                      </div>
+                      <div className="text-xs text-zinc-500 mt-1">
+                        {`Total Current: ${alert.value.toFixed(2)} A`}
+                        {alert.value >= 15 && 
+                          <span className="text-red-500 ml-1">(Above threshold of 15.0 A)</span>
+                        }
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                    
+                    {alert.value >= 15 && (
+                      <div className="flex gap-2 mt-3">
+                        <Button 
+                          className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-1 px-4 rounded text-sm h-9"
+                        >
+                          <Check className="h-4 w-4 mr-1" /> Acknowledged
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-red-400 text-red-500 hover:bg-red-50 font-medium py-1 px-4 rounded text-sm h-9"
+                        >
+                          <X className="h-4 w-4 mr-1" /> Ignore
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
           
           <div className="p-3 bg-white flex justify-center">
