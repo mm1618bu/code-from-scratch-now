@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useAlerts } from '@/hooks/useAlerts';
 import { useDataFetching } from '@/hooks/useDataFetching';
@@ -38,11 +37,7 @@ export const useLiveData = () => {
     itemsPerPage
   } = useDataFiltering(liveData);
 
-  const handleFetchData = useCallback(() => {
-    fetchLiveData();
-  }, [fetchLiveData]);
-
-  useSupabaseRealtime(handleFetchData, processAlert);
+  useSupabaseRealtime(() => {}, processAlert);
 
   return {
     // Data fetching

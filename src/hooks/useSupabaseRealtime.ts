@@ -10,55 +10,10 @@ export const useSupabaseRealtime = (
   onNewAlert: (data: LiveDataItem) => void
 ) => {
   const { toast } = useToast();
-  const lastRefreshTimeRef = useRef<number>(Date.now());
-  const pendingRefreshRef = useRef<boolean>(false);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
 
-  // Throttled refresh function that ensures we don't refresh more than once every 5 seconds
-  const throttledRefresh = useCallback(() => {
-    const now = Date.now();
-    const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
-    const minimumRefreshInterval = 5000; // 5 seconds in milliseconds
-    
-    // If we've already scheduled a refresh, don't schedule another one
-    if (pendingRefreshRef.current) {
-      console.log('Refresh already pending, skipping new refresh request');
-      return;
-    }
-    
-    // If it's been less than 5 seconds since the last refresh,
-    // schedule a refresh for when 5 seconds have passed
-    if (timeSinceLastRefresh < minimumRefreshInterval) {
-      console.log(`Too soon to refresh (${timeSinceLastRefresh}ms since last refresh), scheduling for later`);
-      pendingRefreshRef.current = true;
-      
-      // Clear any existing timeout
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-      
-      // Schedule a new refresh for when the minimum interval has passed
-      const delayTime = minimumRefreshInterval - timeSinceLastRefresh;
-      console.log(`Scheduling refresh in ${delayTime}ms`);
-      
-      refreshTimeoutRef.current = setTimeout(() => {
-        console.log('Executing delayed refresh');
-        onFetchData();
-        lastRefreshTimeRef.current = Date.now();
-        pendingRefreshRef.current = false;
-        refreshTimeoutRef.current = null;
-      }, delayTime);
-    } else {
-      // If it's been more than 5 seconds, refresh immediately
-      console.log('Refresh threshold met, refreshing immediately');
-      onFetchData();
-      lastRefreshTimeRef.current = now;
-    }
-  }, [onFetchData]);
-
   useEffect(() => {
-    console.log('Setting up Supabase realtime subscription');
+    console.log('Setting up Supabase realtime subscription for alerts only');
     
     // Cancel any existing subscription
     if (channelRef.current) {
@@ -68,7 +23,7 @@ export const useSupabaseRealtime = (
     
     // Set up a new subscription
     const channel = supabase
-      .channel('public:liveData:hook')
+      .channel('public:liveData:alertsOnly')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -76,10 +31,7 @@ export const useSupabaseRealtime = (
       }, (payload) => {
         console.log('Real-time update received in useSupabaseRealtime hook:', payload);
         
-        // Use the throttled refresh function instead of calling onFetchData directly
-        throttledRefresh();
-        
-        // Process alerts if necessary
+        // Only process for alerts, don't trigger auto refresh
         if (payload.new && 
             typeof payload.new === 'object' && 
             'total_current' in payload.new && 
@@ -120,15 +72,10 @@ export const useSupabaseRealtime = (
     channelRef.current = channel;
       
     return () => {
-      // Clean up timeout if component unmounts
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-      
       console.log('Removing Supabase realtime subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [throttledRefresh, onNewAlert, toast, onFetchData]);
+  }, [onNewAlert, toast]);
 };

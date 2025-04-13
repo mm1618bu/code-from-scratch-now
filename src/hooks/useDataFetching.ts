@@ -132,9 +132,10 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
     }
   }, [onCheckAlerts, toast]);
 
-  // Fetch initial data on component mount
+  // Fetch initial data on component mount, but no auto-refresh
   useEffect(() => {
     fetchInitialData();
+    // No interval for auto-refresh
   }, [fetchInitialData]);
 
   return {
