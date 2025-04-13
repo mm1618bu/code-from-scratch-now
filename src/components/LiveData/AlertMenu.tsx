@@ -11,10 +11,11 @@ export interface AlertItem {
   machineId: string;
   value?: number;
   timestamp: string;
-  type: 'high-current' | 'downtime';
+  type: 'high-current' | 'downtime' | 'offline-status';
   downtimeDuration?: number;
   offTimestamp?: string;
   onTimestamp?: string;
+  isStatusUpdate?: boolean;
 }
 
 interface AlertMenuProps {
@@ -52,6 +53,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   
   // Count alerts by type
   const downtimeAlertCount = currentAlerts.filter(a => a.type === 'downtime').length;
+  const offlineStatusCount = currentAlerts.filter(a => a.type === 'offline-status').length;
   const highCurrentAlertCount = currentAlerts.filter(a => a.type === 'high-current').length;
   
   // Sort alerts to show newest first
@@ -133,6 +135,9 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 <DropdownMenuItem onClick={() => setFilterType("Downtime Alert")}>
                   Downtime Alert ({downtimeAlertCount})
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("Offline Status")}>
+                  Offline Status ({offlineStatusCount})
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -149,6 +154,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   alertType = "High Current Alert";
                 } else if (alert.type === 'downtime') {
                   alertType = "Downtime Alert";
+                } else if (alert.type === 'offline-status') {
+                  alertType = "Offline Status";
                 } else {
                   alertType = "Node Alert";
                 }
@@ -164,7 +171,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                     className={cn(
                       "p-4 border-b border-zinc-200", 
                       index % 2 === 0 ? "bg-white" : "bg-zinc-50",
-                      alert.type === 'downtime' ? "bg-blue-50" : ""
+                      alert.type === 'downtime' ? "bg-blue-50" : "",
+                      alert.type === 'offline-status' ? "bg-orange-50" : ""
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -188,6 +196,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       <div className="font-medium text-zinc-800">
                         {alert.type === 'high-current' 
                           ? `High Current on ${alert.machineId}` 
+                          : alert.type === 'offline-status'
+                          ? `${alert.machineId} Still Offline`
                           : `${alert.machineId} Downtime Alert`}
                       </div>
                       
@@ -215,6 +225,23 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                             </span>
                             <span>
                               <span className="font-medium">To:</span> {new Date(alert.onTimestamp || '').toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {alert.type === 'offline-status' && (
+                        <div className="text-sm text-zinc-600">
+                          Machine is still offline
+                          <div className="text-xs text-zinc-500 mt-1 flex flex-col gap-1">
+                            <span className="font-semibold text-orange-700">
+                              Offline for {formatDuration(alert.downtimeDuration || 0)} and counting
+                            </span>
+                            <span>
+                              <span className="font-medium">Since:</span> {new Date(alert.offTimestamp || '').toLocaleString()}
+                            </span>
+                            <span className="text-orange-600 font-medium">
+                              Machine still not back online
                             </span>
                           </div>
                         </div>

@@ -70,28 +70,42 @@ export const useAlerts = () => {
   };
 
   const addDowntimeAlert = (downtimeInfo: MachineDowntimeNotification) => {
+    // Create a unique key for offline status updates
+    const isStatusUpdate = !downtimeInfo.onTimestamp || downtimeInfo.onTimestamp === downtimeInfo.offTimestamp;
+    const alertType = isStatusUpdate ? 'offline-status' : 'downtime';
+    
     const newAlert: AlertItem = {
       machineId: downtimeInfo.machineId,
-      timestamp: new Date(downtimeInfo.onTimestamp).toLocaleString(),
-      type: 'downtime',
+      timestamp: new Date(isStatusUpdate ? downtimeInfo.offTimestamp : downtimeInfo.onTimestamp).toLocaleString(),
+      type: alertType as any, // Type casting as the AlertItem type needs to be updated
       downtimeDuration: downtimeInfo.downtimeDuration,
       offTimestamp: downtimeInfo.offTimestamp,
-      onTimestamp: downtimeInfo.onTimestamp
+      onTimestamp: downtimeInfo.onTimestamp,
+      isStatusUpdate: isStatusUpdate
     };
     
     setCurrentAlerts(prev => {
-      // Make sure we don't add duplicate downtime alerts for the same machine and timeframe
-      const key = `downtime-${newAlert.machineId}-${newAlert.offTimestamp}`;
-      const exists = prev.some(a => 
-        a.type === 'downtime' && 
-        a.machineId === newAlert.machineId && 
-        a.offTimestamp === newAlert.offTimestamp
-      );
-      
-      if (exists) {
-        return prev;
+      // For status updates, replace any existing status update for the same machine
+      if (isStatusUpdate) {
+        // Remove any previous status updates for this machine
+        const filtered = prev.filter(a => 
+          !(a.type === 'offline-status' && a.machineId === newAlert.machineId)
+        );
+        return [...filtered, newAlert];
+      } else {
+        // For actual downtime alerts, check for duplicates
+        const exists = prev.some(a => 
+          a.type === 'downtime' && 
+          a.machineId === newAlert.machineId && 
+          a.offTimestamp === newAlert.offTimestamp &&
+          a.onTimestamp === newAlert.onTimestamp
+        );
+        
+        if (exists) {
+          return prev;
+        }
+        return [...prev, newAlert];
       }
-      return [...prev, newAlert];
     });
     
     setAlertCount(prev => prev + 1);

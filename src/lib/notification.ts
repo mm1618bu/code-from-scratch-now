@@ -203,7 +203,6 @@ export const isPushNotificationSupported = (): boolean => {
 
 // Send a push notification for Total Current threshold alert
 export const sendPushNotification = async (alert: TotalCurrentAlertNotification): Promise<void> => {
-  // Skip if total current is below threshold
   if (alert.totalCurrent < 15.0) {
     console.log('Skipping push notification as total current is below threshold');
     return;
@@ -222,8 +221,6 @@ export const sendPushNotification = async (alert: TotalCurrentAlertNotification)
   }
   
   try {
-    // In a real implementation, we would register a service worker and send push notifications
-    // For now, we'll just log to console
     console.log('Would send push notification for Total Current alert:', alert);
   } catch (error) {
     console.error('Error sending push notification:', error);
@@ -245,7 +242,6 @@ export const notifyMachineDowntime = async (downtimeInfo: MachineDowntimeNotific
 
 // Handle Total Current threshold alert
 export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertNotification): Promise<void> => {
-  // Skip if total current is below threshold
   if (alert.totalCurrent < 15.0) {
     console.log('Skipping total current alert notification as value is below threshold');
     return;
@@ -262,7 +258,6 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
 
 // Handle machine state change notification
 export const notifyMachineStateChange = async (stateChange: MachineStateChange): Promise<void> => {
-  // Skip if no total current is provided or it's below threshold
   if (!stateChange.totalCurrent || stateChange.totalCurrent < 15.0) {
     console.log('Skipping state change notification as total current is below threshold');
     return;
@@ -292,6 +287,7 @@ interface OfflineMachineRecord {
   machineId: string;
   offTimestamp: string;
   isStillOffline: boolean;
+  lastUpdated: string; // New field to track when we last reported about this machine
 }
 
 // In-memory map to track machine offline status
@@ -317,7 +313,8 @@ export const trackMachineOffline = (machineId: string, timestamp: string): void 
     offlineMachinesMap.set(machineId, {
       machineId,
       offTimestamp: timestamp,
-      isStillOffline: true
+      isStillOffline: true,
+      lastUpdated: new Date().toISOString() // Initialize with current time
     });
   }
 };
@@ -353,4 +350,60 @@ export const trackMachineOnline = async (machineId: string, timestamp: string): 
   }
   
   return undefined;
+};
+
+// New function to check offline machines status every 2 minutes
+export const checkOfflineMachinesStatus = async (): Promise<(MachineDowntimeNotification | undefined)[]> => {
+  console.log("Checking status of all offline machines");
+  const currentTime = new Date().toISOString();
+  const updates: (MachineDowntimeNotification | undefined)[] = [];
+  
+  // Check each machine that's marked as still offline
+  for (const [machineId, record] of offlineMachinesMap.entries()) {
+    if (record.isStillOffline) {
+      // Calculate how long it's been offline so far
+      const offTime = new Date(record.offTimestamp).getTime();
+      const currentTimeMs = new Date().getTime();
+      const currentDowntimeMinutes = Math.round((currentTimeMs - offTime) / (1000 * 60));
+      
+      // Calculate time since last report
+      const lastUpdatedTime = new Date(record.lastUpdated).getTime();
+      const timeSinceLastUpdateMinutes = Math.round((currentTimeMs - lastUpdatedTime) / (1000 * 60));
+      
+      console.log(`Machine ${machineId} has been offline for ${currentDowntimeMinutes} minutes. Last reported ${timeSinceLastUpdateMinutes} minutes ago.`);
+      
+      // If it's been more than 2 minutes since our last update about this machine, generate a new update
+      if (timeSinceLastUpdateMinutes >= 2) {
+        // Create a periodic update notification
+        const downtimeInfo: MachineDowntimeNotification = {
+          machineId,
+          offTimestamp: record.offTimestamp,
+          onTimestamp: currentTime, // Use current time for the report
+          downtimeDuration: currentDowntimeMinutes
+        };
+        
+        // Update the last reported time
+        record.lastUpdated = currentTime;
+        offlineMachinesMap.set(machineId, record);
+        
+        // Add to updates list
+        updates.push(downtimeInfo);
+        
+        console.log(`Generated 2-minute update for offline machine ${machineId}: offline for ${currentDowntimeMinutes} minutes`);
+        
+        // Send a browser notification for the offline machine
+        await sendBrowserNotification(
+          `Machine ${machineId} Still Offline`,
+          {
+            body: `Machine has been offline for ${currentDowntimeMinutes} minutes since ${new Date(record.offTimestamp).toLocaleString()}`,
+            icon: '/favicon.ico',
+            tag: `machine-offline-${machineId}`,
+            requireInteraction: currentDowntimeMinutes > 10, // Require interaction for machines offline more than 10 minutes
+          }
+        );
+      }
+    }
+  }
+  
+  return updates;
 };

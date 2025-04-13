@@ -7,7 +7,8 @@ import {
   notifyMachineStateChange,
   isMachineOffline,
   trackMachineOffline,
-  trackMachineOnline
+  trackMachineOnline,
+  checkOfflineMachinesStatus
 } from '@/lib/notification';
 import { MachineDowntimeNotification } from '@/lib/notification';
 
@@ -18,6 +19,7 @@ export const useSupabaseRealtime = (
 ) => {
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
+  const offlineCheckIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     console.log('Setting up Supabase realtime subscription for alerts only - NO DATA REFRESH');
@@ -97,6 +99,21 @@ export const useSupabaseRealtime = (
     
     // Store the channel reference so we can clean it up later
     channelRef.current = channel;
+    
+    // Set up periodic check for offline machines (every 2 minutes)
+    offlineCheckIntervalRef.current = window.setInterval(async () => {
+      console.log("Running 2-minute offline machines status check");
+      const updates = await checkOfflineMachinesStatus();
+      
+      // Process any offline machine updates
+      if (updates && updates.length > 0 && onDowntimeAlert) {
+        updates.forEach(update => {
+          if (update) {
+            onDowntimeAlert(update);
+          }
+        });
+      }
+    }, 2 * 60 * 1000); // 2 minutes in milliseconds
       
     // Cleanup function to properly unsubscribe
     return () => {
@@ -104,6 +121,12 @@ export const useSupabaseRealtime = (
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+      }
+      
+      // Clear the interval
+      if (offlineCheckIntervalRef.current) {
+        clearInterval(offlineCheckIntervalRef.current);
+        offlineCheckIntervalRef.current = null;
       }
     };
   }, [onDowntimeAlert, onNewAlert]); // Add onDowntimeAlert to dependency array
