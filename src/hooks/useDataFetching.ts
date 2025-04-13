@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LiveDataItem } from '@/types/liveData';
@@ -10,10 +10,12 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const autoRefreshIntervalRef = useRef<number | null>(null);
 
   // Minimum time between manual refreshes (in milliseconds)
   const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
   const MINIMUM_LOADING_TIME = 2000; // 2 seconds visible loading state
+  const AUTO_REFRESH_INTERVAL = 5000; // 5 seconds auto refresh
 
   // Initial fetch with smaller limit for faster first load
   const fetchInitialData = useCallback(async () => {
@@ -88,6 +90,33 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
       }, remainingTime);
     }
   }, [initialLoadDone, onCheckAlerts, toast]);
+
+  // Auto refresh data fetch (quiet version without loading indicators or toasts)
+  const fetchDataSilently = useCallback(async () => {
+    console.log('Auto-refreshing data silently...');
+    
+    try {
+      const { data, error } = await supabase
+        .from('liveData')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
+      if (error) {
+        console.error('Silent refresh error:', error);
+        return;
+      }
+      
+      if (data) {
+        console.log(`Auto-refreshed ${data.length} records silently`);
+        setLiveData(data as LiveDataItem[]);
+        onCheckAlerts(data as LiveDataItem[]);
+        setLastRefreshTime(Date.now());
+      }
+    } catch (error) {
+      console.error('Error in silent data refresh:', error);
+    }
+  }, [onCheckAlerts]);
 
   // Full data fetch (used for manual refresh)
   const fetchLiveData = useCallback(async () => {
@@ -170,11 +199,28 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
     }
   }, [lastRefreshTime, onCheckAlerts, toast]);
 
-  // Fetch initial data on component mount only once, with no auto-refresh
+  // Set up auto-refresh interval
   useEffect(() => {
-    console.log('Initial data fetch on mount - NO auto-refresh');
+    if (initialLoadDone && autoRefreshIntervalRef.current === null) {
+      console.log(`Setting up auto-refresh interval (${AUTO_REFRESH_INTERVAL / 1000}s)`);
+      autoRefreshIntervalRef.current = window.setInterval(() => {
+        fetchDataSilently();
+      }, AUTO_REFRESH_INTERVAL);
+    }
+    
+    return () => {
+      if (autoRefreshIntervalRef.current !== null) {
+        console.log('Clearing auto-refresh interval');
+        clearInterval(autoRefreshIntervalRef.current);
+        autoRefreshIntervalRef.current = null;
+      }
+    };
+  }, [initialLoadDone, fetchDataSilently]);
+
+  // Fetch initial data on component mount
+  useEffect(() => {
+    console.log('Initial data fetch on mount');
     fetchInitialData();
-    // No interval or timeout for auto-refresh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

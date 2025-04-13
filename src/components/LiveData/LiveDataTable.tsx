@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { LiveDataItem } from '@/types/liveData';
 import { 
@@ -28,10 +28,31 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
   machineIdFilter,
   getStateColor
 }) => {
+  const [isAutoRefreshed, setIsAutoRefreshed] = useState(false);
+  
+  // Visual indicator for auto-refresh
+  useEffect(() => {
+    if (!loading && currentData.length > 0) {
+      setIsAutoRefreshed(true);
+      const timer = setTimeout(() => {
+        setIsAutoRefreshed(false);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentData, loading]);
+
   return (
     <div className="min-w-[1200px]">
       <Table className="border-collapse">
-        <TableCaption>Comprehensive Supabase liveData collection</TableCaption>
+        <TableCaption className="flex items-center justify-center gap-2">
+          Comprehensive Supabase liveData collection
+          {isAutoRefreshed && !loading && (
+            <span className="inline-flex items-center text-xs text-sage gap-1">
+              <RefreshCw className="h-3 w-3" /> Auto-refreshed
+            </span>
+          )}
+        </TableCaption>
         <TableHeader className="sticky top-0 bg-dark z-10">
           <TableRow className="bg-dark-foreground/20 border-b border-dark-foreground/30">
             <TableHead className="text-gray-400 whitespace-nowrap">Machine ID</TableHead>

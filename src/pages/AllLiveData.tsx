@@ -4,7 +4,7 @@ import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Database } from 'lucide-react';
+import { ArrowLeft, Database, RefreshCw } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLiveData } from '@/hooks/useLiveData';
 import { getStateColor } from '@/utils/stateColors';
@@ -80,6 +80,10 @@ const AllLiveData: React.FC = () => {
                 <p className="text-gray-300 text-sm">
                   Live Data from Supabase
                 </p>
+                <p className="text-xs text-sage flex items-center mt-1">
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                  Auto-refreshing every 5 seconds
+                </p>
               </div>
               <div className="flex flex-col items-end">
                 <span className="text-sage font-semibold">
@@ -136,7 +140,10 @@ const AllLiveData: React.FC = () => {
 
       <footer className="w-full p-6 mt-auto text-center">
         <p className="text-gray-400 text-sm">
-          Need help? <a href="#" className="text-sage hover:underline">Contact Support</a>
+          Need help?{" "}
+          <a href="#" className="text-sage hover:underline">
+            Contact Support
+          </a>
         </p>
       </footer>
       
