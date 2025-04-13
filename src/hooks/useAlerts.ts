@@ -1,12 +1,10 @@
 
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { AlertItem } from '@/components/LiveData/AlertMenu';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
 import { LiveDataItem } from '@/types/liveData';
 
 export const useAlerts = () => {
-  const { toast } = useToast();
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
   const [currentAlerts, setCurrentAlerts] = useState<AlertItem[]>([]);
@@ -33,6 +31,7 @@ export const useAlerts = () => {
       
       setAlertCount(prev => prev + highCurrentItems.length);
       
+      // We're only adding to the alerts dropdown and not showing toasts
       highCurrentItems.forEach(item => {
         notifyTotalCurrentThresholdAlert({
           machineId: item.machineId,
@@ -41,11 +40,7 @@ export const useAlerts = () => {
         });
       });
       
-      toast({
-        title: "High Current Alert",
-        description: `${highCurrentItems.length} machine(s) have total current exceeding threshold`,
-        variant: "destructive",
-      });
+      // Removed toast notification here
     }
   };
 
@@ -70,11 +65,7 @@ export const useAlerts = () => {
         timestamp: new Date(newData.created_at).toISOString()
       });
       
-      toast({
-        title: "High Current Alert",
-        description: `Machine ${newData.machineId} total current: ${newData.total_current.toFixed(2)}`,
-        variant: "destructive",
-      });
+      // Removed toast notification here
     }
   };
 

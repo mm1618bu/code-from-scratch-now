@@ -211,38 +211,13 @@ export const sendPushNotification = async (alert: TotalCurrentAlertNotification)
   
   if (!isPushNotificationSupported()) {
     console.log('Push notifications not supported in this browser');
-    // Fall back to browser notification
-    await sendBrowserNotification(
-      `ALERT: Machine ${alert.machineId} High Total Current`,
-      {
-        body: `Total Current value is ${alert.totalCurrent.toFixed(2)}, which exceeds the threshold of 15.0`,
-        icon: '/favicon.ico',
-      }
-    );
     return;
   }
   
   try {
     // In a real implementation, we would register a service worker and send push notifications
-    // For now, we'll simulate with a toast and browser notification
-    toast({
-      title: `PUSH ALERT: Machine ${alert.machineId}`,
-      description: `Total Current (${alert.totalCurrent.toFixed(2)}) exceeds threshold of 15.0`,
-      variant: 'destructive',
-    });
-    
-    // Also send a browser notification as a visual indicator
-    await sendBrowserNotification(
-      `PUSH ALERT: Machine ${alert.machineId} High Total Current`,
-      {
-        body: `Total Current value is ${alert.totalCurrent.toFixed(2)}, which exceeds the threshold of 15.0`,
-        icon: '/favicon.ico',
-        tag: `push-total-current-alert-${alert.machineId}`,
-        requireInteraction: true,
-      }
-    );
-    
-    console.log('Push notification simulated for Total Current alert');
+    // For now, we'll just log to console
+    console.log('Would send push notification for Total Current alert:', alert);
   } catch (error) {
     console.error('Error sending push notification:', error);
   }
@@ -264,12 +239,7 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
   // Send email notification for high current alerts
   await sendEmailNotification(alert, true);
   
-  // Show a toast notification
-  toast({
-    title: `High Total Current Alert: Machine ${alert.machineId}`,
-    description: `Total Current value (${alert.totalCurrent.toFixed(2)}) exceeds threshold of 15.0`,
-    variant: 'destructive',
-  });
+  // Removed toast notification here
 };
 
 // Handle machine state change notification
@@ -298,11 +268,5 @@ Total Current: ${stateChange.totalCurrent.toFixed(2)}`,
   // Send email notification
   await sendEmailNotification(stateChange);
   
-  // Also show a toast notification
-  toast({
-    title: `Machine ${stateChange.machineId} State Change (High Current)`,
-    description: `State changed from ${stateChange.previousState} to ${stateChange.newState}
-Total Current: ${stateChange.totalCurrent.toFixed(2)}`,
-    variant: hasChangedToError ? 'destructive' : 'default',
-  });
+  // Removed toast notification here
 };
