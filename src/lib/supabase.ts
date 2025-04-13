@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export { supabase };
 
-// No real-time subscription in this file
-// We only want subscriptions in specific components
+// NO real-time subscription in this file
+// We don't want any automatic refreshes
 
-console.log('Supabase client imported');
+console.log('Supabase client imported - NO auto-refresh');

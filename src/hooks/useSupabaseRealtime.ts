@@ -6,7 +6,7 @@ import { LiveDataItem } from '@/types/liveData';
 import { notifyMachineStateChange } from '@/lib/notification';
 
 export const useSupabaseRealtime = (
-  onFetchData: () => void, // This will be empty in useLiveData to prevent auto-refresh
+  onFetchData: () => void, // This parameter is kept for API compatibility but will not be used
   onNewAlert: (data: LiveDataItem) => void
 ) => {
   const { toast } = useToast();
@@ -21,23 +21,25 @@ export const useSupabaseRealtime = (
       supabase.removeChannel(channelRef.current);
     }
     
-    // Set up a new subscription specifically for alerts only
+    // Set up a new subscription specifically for alerts only, never triggers data refresh
     const channel = supabase
-      .channel('public:liveData:alertsOnly')
+      .channel('alerts-only-channel')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'liveData' 
       }, (payload) => {
-        console.log('Real-time update received in useSupabaseRealtime hook:', payload);
+        console.log('Alert-only update received:', payload);
         
-        // Only process for alerts, don't trigger auto refresh
+        // Only process alerts, never trigger data refresh
         if (payload.new && 
             typeof payload.new === 'object' && 
             'total_current' in payload.new && 
             'machineId' in payload.new) {
           
           const newData = payload.new as LiveDataItem;
+          
+          // Only process alerts, no data refreshing
           onNewAlert(newData);
           
           // Handle state change notifications
@@ -65,7 +67,7 @@ export const useSupabaseRealtime = (
         }
       })
       .subscribe((status) => {
-        console.log('Realtime subscription status in useSupabaseRealtime:', status);
+        console.log('Alert-only subscription status:', status);
       });
     
     // Store the channel reference so we can clean it up later

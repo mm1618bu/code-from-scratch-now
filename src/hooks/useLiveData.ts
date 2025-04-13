@@ -38,11 +38,11 @@ export const useLiveData = () => {
     itemsPerPage
   } = useDataFiltering(liveData);
 
-  // Only set up realtime for alert processing with an empty function for onFetchData
-  // to ensure we don't trigger any refreshes
+  // Set up realtime only for alert processing with an empty no-op function
+  // This ensures we absolutely never trigger any data refreshes
   useSupabaseRealtime(() => {
-    // Empty function to prevent any auto-refresh
-    console.log('Alert received but not triggering refresh');
+    // Completely empty no-op function to ensure no refreshes ever occur
+    console.log('Alert received but absolutely NO refresh will be triggered');
   }, processAlert);
 
   return {
