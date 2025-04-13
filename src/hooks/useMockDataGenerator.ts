@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +11,9 @@ import {
   TOTAL_CURRENT_THRESHOLD,
   getRandomItem,
   getRandomFloat,
-  generatePossiblyHighTotalCurrent
+  generatePossiblyHighTotalCurrent,
+  isForceOfflineMachine,
+  clearForceOfflineMachine
 } from '@/utils/mockDataUtils';
 
 export const useMockDataGenerator = () => {
@@ -37,10 +40,40 @@ export const useMockDataGenerator = () => {
         .maybeSingle();
       
       const previousState = currentData?.state || getRandomItem(MACHINE_STATES);
-      let newState = getRandomItem(MACHINE_STATES);
       
-      // Make sure the new state is different from the previous state
-      while (newState === previousState) {
+      // Check if this machine is being forced offline
+      let newState = previousState;
+      let offlineStartTime: string | null = null;
+      
+      if (isForceOfflineMachine(machineId)) {
+        newState = 'off';
+      } else if (previousState === 'off') {
+        // Machine was previously off, now check if we should turn it back on
+        offlineStartTime = clearForceOfflineMachine(machineId);
+        if (offlineStartTime) {
+          // If we forced this machine offline before, now turn it back on
+          newState = getRandomItem(MACHINE_STATES.filter(state => state !== 'off'));
+          
+          // Calculate the downtime duration in minutes
+          const startTime = new Date(offlineStartTime);
+          const endTime = new Date();
+          const downtimeMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+          
+          // Send alert notification for machine coming back online
+          toast({
+            title: `Machine ${machineId} is Back Online`,
+            description: `The machine was offline for ${downtimeMinutes} minutes`,
+            variant: "default",
+          });
+          
+          // Log the downtime event
+          console.log(`Machine ${machineId} was offline for ${downtimeMinutes} minutes from ${startTime.toLocaleString()} to ${endTime.toLocaleString()}`);
+        } else {
+          // If it wasn't forced offline, just get a random new state
+          newState = getRandomItem(MACHINE_STATES);
+        }
+      } else {
+        // Regular state change logic
         newState = getRandomItem(MACHINE_STATES);
       }
       
@@ -129,6 +162,27 @@ export const useMockDataGenerator = () => {
     }
   };
 
+  // Function to force MACH001 offline for 3 minutes
+  const forceMachine1OfflineFor3Minutes = () => {
+    const machineId = 'MACH001';
+    
+    // Force the machine offline
+    toast({
+      title: `Forcing ${machineId} Offline`,
+      description: "Machine will be offline for 3 minutes",
+      variant: "default",
+    });
+    
+    // Store the start time and set machine to forced offline
+    localStorage.setItem(`force_offline_${machineId}`, 'true');
+    localStorage.setItem(`offline_start_${machineId}`, new Date().toISOString());
+    
+    // Set a timeout to clear the force offline after 3 minutes
+    setTimeout(() => {
+      // The next data generation will handle turning the machine back on
+    }, 3 * 60 * 1000); // 3 minutes in milliseconds
+  };
+
   // Toggle data generation on/off
   const toggleDataGeneration = () => {
     if (isGenerating) {
@@ -151,6 +205,9 @@ export const useMockDataGenerator = () => {
       });
       // Generate one immediately
       generateStateChange();
+      
+      // Force MACH001 offline for 3 minutes as per use case
+      forceMachine1OfflineFor3Minutes();
     }
     
     setIsGenerating(!isGenerating);

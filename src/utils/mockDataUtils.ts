@@ -1,3 +1,4 @@
+
 // Constants for random selection
 export const MACHINE_STATES = ['running', 'idle', 'error', 'maintenance', 'standby', 'off'];
 export const MACHINE_IDS = ['MACH001', 'MACH002', 'MACH003', 'MACH004', 'MACH005', 'MACH006', 'MACH007', 'MACH008'];
@@ -29,4 +30,35 @@ export const generatePossiblyHighTotalCurrent = (): number => {
 export const isMachineOffline = (data: Record<string, any>): boolean => {
   // A machine is offline if its state is "off"
   return data.state === "off";
+};
+
+// Function to force a specific machine to be offline for a specified duration
+export const forceOfflineMachine = (machineId: string): void => {
+  // Store in localStorage that this machine should be forced offline
+  localStorage.setItem(`force_offline_${machineId}`, 'true');
+  // Store the start time of the offline period
+  localStorage.setItem(`offline_start_${machineId}`, new Date().toISOString());
+  
+  console.log(`Forcing machine ${machineId} to be offline starting now`);
+};
+
+// Function to check if a machine is currently being forced offline
+export const isForceOfflineMachine = (machineId: string): boolean => {
+  return localStorage.getItem(`force_offline_${machineId}`) === 'true';
+};
+
+// Function to clear the force offline state after the duration is complete
+export const clearForceOfflineMachine = (machineId: string): string | null => {
+  const wasForced = isForceOfflineMachine(machineId);
+  const startTimeStr = localStorage.getItem(`offline_start_${machineId}`);
+  
+  // Clear the forced offline state
+  localStorage.removeItem(`force_offline_${machineId}`);
+  
+  // If the machine was forced offline, return the start time for duration calculation
+  if (wasForced && startTimeStr) {
+    return startTimeStr;
+  }
+  
+  return null;
 };
