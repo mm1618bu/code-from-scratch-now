@@ -32,11 +32,11 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
           variant="outline"
           className="border-sage text-sage hover:bg-sage/20 relative"
         >
-          {alertCount > 0 ? (
+          {currentAlerts.length > 0 ? (
             <>
               <BellRing className="h-4 w-4 mr-2 animate-pulse" />
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {alertCount}
+                {currentAlerts.length}
               </span>
             </>
           ) : (

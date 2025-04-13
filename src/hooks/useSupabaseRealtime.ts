@@ -22,17 +22,17 @@ export const useSupabaseRealtime = (
       channelRef.current = null;
     }
     
-    // Set up a new subscription specifically for alerts only, explicitly prevents data refresh
+    // Set up a new subscription specifically for new inserts only
     const channel = supabase
-      .channel('alerts-only-no-refresh')
+      .channel('alerts-only-new-inserts')
       .on('postgres_changes', { 
-        event: '*', 
+        event: 'INSERT', // Only listen for new inserts, not existing data 
         schema: 'public', 
         table: 'liveData' 
       }, (payload) => {
-        console.log('Alert-only update received, NEVER refreshing data:', payload);
+        console.log('New record inserted, processing for alerts only:', payload);
         
-        // Only process alerts, NEVER trigger data refresh
+        // Only process alerts for new inserts
         if (payload.new && 
             typeof payload.new === 'object' && 
             'total_current' in payload.new && 
@@ -40,11 +40,11 @@ export const useSupabaseRealtime = (
           
           const newData = payload.new as LiveDataItem;
           
-          // Only process alerts, explicitly NO data refreshing
-          console.log('Processing alert only, NO data refresh will be triggered');
+          // Process alerts for the new data
+          console.log('Processing alert for new insert only');
           onNewAlert(newData);
           
-          // Handle state change notifications
+          // Handle state change notifications for new inserts with high current
           if ('state' in newData && 
               newData.total_current >= 15.0 && 
               payload.old && 
@@ -69,7 +69,7 @@ export const useSupabaseRealtime = (
         }
       })
       .subscribe((status) => {
-        console.log('Alert-only subscription status (NO data refresh):', status);
+        console.log('Alert-only subscription status (new inserts only):', status);
       });
     
     // Store the channel reference so we can clean it up later

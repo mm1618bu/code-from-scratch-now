@@ -42,7 +42,8 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
         
         setTimeout(() => {
           setLiveData(data as LiveDataItem[]);
-          onCheckAlerts(data as LiveDataItem[]);
+          // We don't check for alerts on initial load anymore
+          // onCheckAlerts(data as LiveDataItem[]);
           
           // Only show toast for manual refreshes, not initial load
           if (initialLoadDone) {
@@ -129,7 +130,8 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
         
         setTimeout(() => {
           setLiveData(data as LiveDataItem[]);
-          onCheckAlerts(data as LiveDataItem[]);
+          // We don't check for alerts on manual refresh anymore
+          // onCheckAlerts(data as LiveDataItem[]);
           
           toast({
             title: "Data Refreshed",

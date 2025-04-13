@@ -62,7 +62,8 @@ export const useMockDataGenerator = () => {
         machineId,
         previousState,
         newState,
-        timestamp: currentTimestamp.toISOString()
+        timestamp: currentTimestamp.toISOString(),
+        totalCurrent // Add total current to the state change object
       };
       
       // Create a fresh timestamp for this database operation
@@ -95,10 +96,10 @@ export const useMockDataGenerator = () => {
       
       console.log(`Created new record for machine ${machineId}: state changed to ${newState} at ${insertTimestamp.toISOString()}`);
       
-      // Send notifications after successful database update
+      // Only send state change notifications when generating mock data
       notifyMachineStateChange(stateChange);
       
-      // Check if Total Current exceeds threshold and send alert notification
+      // Only check for total current threshold when generating mock data
       if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {
         console.log(`Total Current threshold exceeded for machine ${machineId}: ${totalCurrent}`);
         notifyTotalCurrentThresholdAlert({
