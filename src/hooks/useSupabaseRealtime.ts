@@ -6,32 +6,33 @@ import { LiveDataItem } from '@/types/liveData';
 import { notifyMachineStateChange } from '@/lib/notification';
 
 export const useSupabaseRealtime = (
-  onFetchData: () => void, // This parameter is kept for API compatibility but will not be used
+  onFetchData: () => void, // This parameter is completely ignored
   onNewAlert: (data: LiveDataItem) => void
 ) => {
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    console.log('Setting up Supabase realtime subscription for alerts only');
+    console.log('Setting up Supabase realtime subscription for alerts only - NO DATA REFRESH');
     
     // Cancel any existing subscription to prevent multiple instances
     if (channelRef.current) {
       console.log('Removing existing Supabase realtime subscription');
       supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
     
-    // Set up a new subscription specifically for alerts only, never triggers data refresh
+    // Set up a new subscription specifically for alerts only, explicitly prevents data refresh
     const channel = supabase
-      .channel('alerts-only-channel')
+      .channel('alerts-only-no-refresh')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'liveData' 
       }, (payload) => {
-        console.log('Alert-only update received:', payload);
+        console.log('Alert-only update received, NEVER refreshing data:', payload);
         
-        // Only process alerts, never trigger data refresh
+        // Only process alerts, NEVER trigger data refresh
         if (payload.new && 
             typeof payload.new === 'object' && 
             'total_current' in payload.new && 
@@ -39,7 +40,8 @@ export const useSupabaseRealtime = (
           
           const newData = payload.new as LiveDataItem;
           
-          // Only process alerts, no data refreshing
+          // Only process alerts, explicitly NO data refreshing
+          console.log('Processing alert only, NO data refresh will be triggered');
           onNewAlert(newData);
           
           // Handle state change notifications
@@ -67,7 +69,7 @@ export const useSupabaseRealtime = (
         }
       })
       .subscribe((status) => {
-        console.log('Alert-only subscription status:', status);
+        console.log('Alert-only subscription status (NO data refresh):', status);
       });
     
     // Store the channel reference so we can clean it up later
@@ -75,7 +77,7 @@ export const useSupabaseRealtime = (
       
     // Cleanup function to properly unsubscribe
     return () => {
-      console.log('Removing Supabase realtime subscription');
+      console.log('Cleaning up Supabase realtime subscription - preventing memory leaks');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

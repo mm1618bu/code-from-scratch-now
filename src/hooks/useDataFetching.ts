@@ -9,10 +9,16 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
   const [liveData, setLiveData] = useState<LiveDataItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+
+  // Minimum time between manual refreshes (in milliseconds)
+  const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
+  const MINIMUM_LOADING_TIME = 2000; // 2 seconds visible loading state
 
   // Initial fetch with smaller limit for faster first load
   const fetchInitialData = useCallback(async () => {
     setLoading(true);
+    const fetchStartTime = Date.now();
     
     try {
       console.log('Fetching initial data from Supabase...');
@@ -30,9 +36,9 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
       if (data) {
         console.log(`Fetched ${data.length} initial records`);
         
-        // Add a small artificial delay to make loading more visible (min 1 second)
-        const startTime = Date.now();
-        const minimumLoadTime = 1000; // 1 second in milliseconds
+        // Enforce minimum loading time for better UX
+        const elapsedTime = Date.now() - fetchStartTime;
+        const remainingTime = Math.max(0, MINIMUM_LOADING_TIME - elapsedTime);
         
         setTimeout(() => {
           setLiveData(data as LiveDataItem[]);
@@ -48,19 +54,27 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
           
           setInitialLoadDone(true);
           setLoading(false);
-        }, Math.max(0, minimumLoadTime - (Date.now() - startTime)));
+          setLastRefreshTime(Date.now());
+        }, remainingTime);
       } else {
         console.log('No data returned from Supabase');
         
-        // Still add minimum delay even if no data
+        // Still enforce minimum loading time even if no data
+        const elapsedTime = Date.now() - fetchStartTime;
+        const remainingTime = Math.max(0, MINIMUM_LOADING_TIME - elapsedTime);
+        
         setTimeout(() => {
           setLoading(false);
-        }, 1000);
+          setLastRefreshTime(Date.now());
+        }, remainingTime);
       }
     } catch (error) {
       console.error('Error fetching initial live data:', error);
       
-      // Add minimum delay even on error
+      // Enforce minimum loading time even on error
+      const elapsedTime = Date.now() - fetchStartTime;
+      const remainingTime = Math.max(0, MINIMUM_LOADING_TIME - elapsedTime);
+      
       setTimeout(() => {
         if (initialLoadDone) {
           toast({
@@ -70,13 +84,28 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
           });
         }
         setLoading(false);
-      }, 1000);
+        setLastRefreshTime(Date.now());
+      }, remainingTime);
     }
   }, [initialLoadDone, onCheckAlerts, toast]);
 
   // Full data fetch (used for manual refresh)
   const fetchLiveData = useCallback(async () => {
+    // Prevent rapid refreshing by enforcing minimum time between refreshes
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime;
+    
+    if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+      console.log(`Refresh attempted too soon. Please wait ${Math.ceil((MIN_REFRESH_INTERVAL - timeSinceLastRefresh)/1000)} seconds before refreshing again.`);
+      toast({
+        title: "Refresh Limited",
+        description: `Please wait a moment before refreshing again`,
+      });
+      return;
+    }
+    
     setLoading(true);
+    const fetchStartTime = Date.now();
     
     try {
       console.log('Fetching complete data from Supabase...');
@@ -94,9 +123,9 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
       if (data) {
         console.log(`Fetched ${data.length} complete records`);
         
-        // Add a small artificial delay to make loading more visible (min 1 second)
-        const startTime = Date.now();
-        const minimumLoadTime = 1000; // 1 second in milliseconds
+        // Enforce minimum loading time for better UX
+        const elapsedTime = Date.now() - fetchStartTime;
+        const remainingTime = Math.max(0, MINIMUM_LOADING_TIME - elapsedTime);
         
         setTimeout(() => {
           setLiveData(data as LiveDataItem[]);
@@ -108,19 +137,27 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
           });
           
           setLoading(false);
-        }, Math.max(0, minimumLoadTime - (Date.now() - startTime)));
+          setLastRefreshTime(Date.now());
+        }, remainingTime);
       } else {
         console.log('No data returned from Supabase');
         
-        // Still add minimum delay even if no data
+        // Still enforce minimum loading time even if no data
+        const elapsedTime = Date.now() - fetchStartTime;
+        const remainingTime = Math.max(0, MINIMUM_LOADING_TIME - elapsedTime);
+        
         setTimeout(() => {
           setLoading(false);
-        }, 1000);
+          setLastRefreshTime(Date.now());
+        }, remainingTime);
       }
     } catch (error) {
       console.error('Error fetching all live data:', error);
       
-      // Add minimum delay even on error
+      // Enforce minimum loading time even on error
+      const elapsedTime = Date.now() - fetchStartTime;
+      const remainingTime = Math.max(0, MINIMUM_LOADING_TIME - elapsedTime);
+      
       setTimeout(() => {
         toast({
           title: "Error",
@@ -128,15 +165,18 @@ export const useDataFetching = (onCheckAlerts: (data: LiveDataItem[]) => void) =
           variant: "destructive"
         });
         setLoading(false);
-      }, 1000);
+        setLastRefreshTime(Date.now());
+      }, remainingTime);
     }
-  }, [onCheckAlerts, toast]);
+  }, [lastRefreshTime, onCheckAlerts, toast]);
 
-  // Fetch initial data on component mount, with no auto-refresh
+  // Fetch initial data on component mount only once, with no auto-refresh
   useEffect(() => {
+    console.log('Initial data fetch on mount - NO auto-refresh');
     fetchInitialData();
     // No interval or timeout for auto-refresh
-  }, [fetchInitialData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     liveData,

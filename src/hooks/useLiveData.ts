@@ -38,12 +38,17 @@ export const useLiveData = () => {
     itemsPerPage
   } = useDataFiltering(liveData);
 
-  // Set up realtime only for alert processing with an empty no-op function
-  // This ensures we absolutely never trigger any data refreshes
-  useSupabaseRealtime(() => {
-    // Completely empty no-op function to ensure no refreshes ever occur
-    console.log('Alert received but absolutely NO refresh will be triggered');
-  }, processAlert);
+  // Set up realtime ONLY for alert processing
+  // Pass an EXPLICITLY EMPTY function that will NEVER be called
+  // to guarantee no data refresh can ever happen
+  useSupabaseRealtime(
+    () => {
+      // This function is NEVER USED and NEVER CALLED
+      // It exists only for type compatibility
+      console.log('This function will never be executed - it exists only for API compatibility');
+    }, 
+    processAlert // Only process alerts
+  );
 
   return {
     // Data fetching
