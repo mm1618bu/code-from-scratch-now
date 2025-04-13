@@ -129,7 +129,7 @@ export const useMockDataGenerator = () => {
       }
       toast({
         title: "Mock Data Generation Stopped",
-        description: "No longer generating random machine state changes"
+        description: "No longer generating mock data"
       });
     } else {
       // Start generation - exactly one record every 5 seconds
