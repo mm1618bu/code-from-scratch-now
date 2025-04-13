@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -104,11 +103,6 @@ export const useMockDataGenerator = () => {
           ctAvg = 0;
           totalCurrent = 0;
           newState = 'off'; // Use "off" state specifically for offline machines
-          
-          toast({
-            title: "Starting Downtime Simulation",
-            description: `Simulating machine ${machineId} going offline and then back online`,
-          });
           
           console.log(`Starting downtime simulation for machine ${machineId}`);
         } else {

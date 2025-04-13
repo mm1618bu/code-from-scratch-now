@@ -237,16 +237,7 @@ export const notifyMachineDowntime = async (downtimeInfo: MachineDowntimeNotific
   // Log to console
   console.log(`Machine ${downtimeInfo.machineId} was offline for ${downtimeInfo.downtimeDuration} minutes (from ${new Date(downtimeInfo.offTimestamp).toLocaleString()} to ${new Date(downtimeInfo.onTimestamp).toLocaleString()})`);
   
-  // Send browser notification
-  await sendBrowserNotification(
-    `Machine ${downtimeInfo.machineId} Downtime Alert`,
-    {
-      body: `Machine was offline for ${downtimeInfo.downtimeDuration} minutes`,
-      icon: '/favicon.ico',
-      tag: `machine-downtime-${downtimeInfo.machineId}`,
-      requireInteraction: false,
-    }
-  );
+  // Skip browser notification - no toast notifications for downtime
   
   // Send email notification
   await sendEmailNotification(downtimeInfo, 'MACHINE_DOWNTIME');

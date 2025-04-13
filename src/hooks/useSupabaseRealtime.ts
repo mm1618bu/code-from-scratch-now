@@ -9,11 +9,12 @@ import {
   trackMachineOffline,
   trackMachineOnline
 } from '@/lib/notification';
+import { MachineDowntimeNotification } from '@/lib/notification';
 
 export const useSupabaseRealtime = (
   onFetchData: () => void, // This parameter is completely ignored
   onNewAlert: (data: LiveDataItem) => void,
-  onDowntimeAlert?: (downtimeInfo: any) => void
+  onDowntimeAlert?: (downtimeInfo: MachineDowntimeNotification) => void
 ) => {
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
@@ -83,7 +84,7 @@ export const useSupabaseRealtime = (
               const downtimeInfo = await trackMachineOnline(newData.machineId, newData.created_at);
               
               // If we have downtime info and the callback exists, call it
-              if (downtimeInfo !== undefined && onDowntimeAlert) {
+              if (downtimeInfo && onDowntimeAlert) {
                 onDowntimeAlert(downtimeInfo);
               }
             }
@@ -106,6 +107,4 @@ export const useSupabaseRealtime = (
       }
     };
   }, [onDowntimeAlert, onNewAlert]); // Add onDowntimeAlert to dependency array
-
-  return; // No need to return anything
 };
