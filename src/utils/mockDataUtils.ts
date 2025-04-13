@@ -25,7 +25,8 @@ export const generatePossiblyHighTotalCurrent = (): number => {
   return getRandomFloat(1.5, TOTAL_CURRENT_THRESHOLD - 1.0);
 };
 
-// Helper to check if a machine is considered offline - simplified to just check state
+// Helper to check if a machine is considered offline
 export const isMachineOffline = (data: Record<string, any>): boolean => {
+  // A machine is offline if its state is "off"
   return data.state === "off";
 };
