@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useAlerts } from '@/hooks/useAlerts';
 import { useDataFetching } from '@/hooks/useDataFetching';
@@ -37,7 +38,12 @@ export const useLiveData = () => {
     itemsPerPage
   } = useDataFiltering(liveData);
 
-  useSupabaseRealtime(() => {}, processAlert);
+  // Only set up realtime for alert processing with an empty function for onFetchData
+  // to ensure we don't trigger any refreshes
+  useSupabaseRealtime(() => {
+    // Empty function to prevent any auto-refresh
+    console.log('Alert received but not triggering refresh');
+  }, processAlert);
 
   return {
     // Data fetching

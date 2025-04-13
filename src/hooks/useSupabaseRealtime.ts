@@ -1,12 +1,12 @@
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LiveDataItem } from '@/types/liveData';
 import { notifyMachineStateChange } from '@/lib/notification';
 
 export const useSupabaseRealtime = (
-  onFetchData: () => void,
+  onFetchData: () => void, // This will be empty in useLiveData to prevent auto-refresh
   onNewAlert: (data: LiveDataItem) => void
 ) => {
   const { toast } = useToast();
@@ -15,13 +15,13 @@ export const useSupabaseRealtime = (
   useEffect(() => {
     console.log('Setting up Supabase realtime subscription for alerts only');
     
-    // Cancel any existing subscription
+    // Cancel any existing subscription to prevent multiple instances
     if (channelRef.current) {
       console.log('Removing existing Supabase realtime subscription');
       supabase.removeChannel(channelRef.current);
     }
     
-    // Set up a new subscription
+    // Set up a new subscription specifically for alerts only
     const channel = supabase
       .channel('public:liveData:alertsOnly')
       .on('postgres_changes', { 
@@ -71,11 +71,15 @@ export const useSupabaseRealtime = (
     // Store the channel reference so we can clean it up later
     channelRef.current = channel;
       
+    // Cleanup function to properly unsubscribe
     return () => {
       console.log('Removing Supabase realtime subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
-  }, [onNewAlert, toast]);
+  }, []); // Empty dependency array to run only once on mount
+
+  return; // No need to return anything
 };
