@@ -109,13 +109,15 @@ const AllLiveData: React.FC = () => {
           </div>
 
           <ScrollArea className="h-[500px] rounded-md border border-dark-foreground/20">
-            <LiveDataTable 
-              loading={loading}
-              currentData={currentData}
-              stateFilter={stateFilter}
-              machineIdFilter={machineIdFilter}
-              getStateColor={getStateColor}
-            />
+            <div className="overflow-auto">
+              <LiveDataTable 
+                loading={loading}
+                currentData={currentData}
+                stateFilter={stateFilter}
+                machineIdFilter={machineIdFilter}
+                getStateColor={getStateColor}
+              />
+            </div>
           </ScrollArea>
           
           <DataPagination 
