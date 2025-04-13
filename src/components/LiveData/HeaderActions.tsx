@@ -43,14 +43,6 @@ const HeaderActions: React.FC<HeaderActionsProps> = ({
         />
         
         <Button 
-          onClick={() => navigate('/mongodb')}
-          variant="outline"
-          className="border-sage text-sage hover:bg-sage/20"
-        >
-          MongoDB Dashboard
-        </Button>
-        
-        <Button 
           onClick={handleRefreshData} 
           variant="outline" 
           disabled={loading}
