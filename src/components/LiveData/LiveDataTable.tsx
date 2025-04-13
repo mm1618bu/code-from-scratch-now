@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { LiveDataItem } from '@/types/liveData';
 import { 
   Table,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Progress } from "@/components/ui/progress";
 import { isMachineOffline } from '@/utils/mockDataUtils';
+import { Button } from '@/components/ui/button';
 
 interface LiveDataTableProps {
   loading: boolean;
@@ -19,6 +20,8 @@ interface LiveDataTableProps {
   stateFilter: string;
   machineIdFilter: string;
   getStateColor: (state: string) => string;
+  sortDirection?: 'asc' | 'desc';
+  onSortChange?: () => void;
 }
 
 const LiveDataTable: React.FC<LiveDataTableProps> = ({
@@ -26,7 +29,9 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
   currentData,
   stateFilter,
   machineIdFilter,
-  getStateColor
+  getStateColor,
+  sortDirection = 'desc',
+  onSortChange
 }) => {
   return (
     <div className="min-w-[1200px]">
@@ -44,7 +49,21 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
             <TableHead className="text-gray-400 whitespace-nowrap">Fault Status</TableHead>
             <TableHead className="text-gray-400 whitespace-nowrap">FW Version</TableHead>
             <TableHead className="text-gray-400 whitespace-nowrap">MAC Address</TableHead>
-            <TableHead className="text-gray-400 whitespace-nowrap">Created At</TableHead>
+            <TableHead className="text-gray-400 whitespace-nowrap group hover:bg-dark-foreground/30">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSortChange}
+                className="h-8 p-1 text-gray-400 whitespace-nowrap flex items-center gap-1"
+              >
+                Created At
+                {sortDirection === 'asc' ? (
+                  <ArrowUp className="h-4 w-4 ml-1 text-sage" />
+                ) : (
+                  <ArrowDown className="h-4 w-4 ml-1 text-sage" />
+                )}
+              </Button>
+            </TableHead>
             <TableHead className="text-gray-400 whitespace-nowrap">Record ID</TableHead>
           </TableRow>
         </TableHeader>

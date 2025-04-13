@@ -6,6 +6,7 @@ export const useDataFiltering = (liveData: LiveDataItem[]) => {
   const [stateFilter, setStateFilter] = useState<string>("all");
   const [machineIdFilter, setMachineIdFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc'); // Default sort is descending (newest first)
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -28,6 +29,14 @@ export const useDataFiltering = (liveData: LiveDataItem[]) => {
     filteredData = filteredData.filter(item => item.machineId === machineIdFilter);
   }
 
+  // Apply sorting by created_at
+  filteredData = [...filteredData].sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime();
+    const dateB = new Date(b.created_at).getTime();
+    
+    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+  });
+
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   
   const currentData = filteredData.slice(
@@ -42,6 +51,8 @@ export const useDataFiltering = (liveData: LiveDataItem[]) => {
     setMachineIdFilter,
     currentPage,
     setCurrentPage,
+    sortDirection,
+    setSortDirection,
     uniqueStates,
     uniqueMachineIds,
     filteredData,

@@ -28,6 +28,8 @@ const AllLiveData: React.FC = () => {
     setMachineIdFilter,
     currentPage,
     setCurrentPage,
+    sortDirection,
+    setSortDirection,
     alertCount,
     showAlerts,
     setShowAlerts,
@@ -44,6 +46,10 @@ const AllLiveData: React.FC = () => {
 
   const handleRefreshData = () => {
     fetchLiveData();
+  };
+
+  const handleSortDirectionChange = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
   return (
@@ -119,6 +125,8 @@ const AllLiveData: React.FC = () => {
                 stateFilter={stateFilter}
                 machineIdFilter={machineIdFilter}
                 getStateColor={getStateColor}
+                sortDirection={sortDirection}
+                onSortChange={handleSortDirectionChange}
               />
             </div>
           </ScrollArea>
