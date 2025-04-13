@@ -129,16 +129,47 @@ export const useMockDataGenerator = () => {
           trackMachineOffline(machineId, currentTimestamp.toISOString());
         } else {
           // Generate random values for regular simulation
-          ct1 = getRandomFloat(0.5, 6.0);
-          ct2 = getRandomFloat(0.5, 6.0);
-          ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
-          ctAvg = getRandomFloat(0.5, 15.0); // Keep CT_Avg within normal range
-          totalCurrent = generatePossiblyHighTotalCurrent();
-          newState = getRandomItem(MACHINE_STATES);
           
-          // Make sure the new state is different from the previous state
-          while (newState === previousState) {
-            newState = getRandomItem(MACHINE_STATES);
+          // Randomly decide if the machine should be off (1% chance when not in simulation)
+          const shouldBeOff = Math.random() < 0.01;
+          
+          if (shouldBeOff || previousState === 'off') {
+            // If random selection says off or previous state was off, ensure all values are 0
+            ct1 = 0;
+            ct2 = 0;
+            ct3 = 0;
+            ctAvg = 0;
+            totalCurrent = 0;
+            newState = 'off';
+            
+            // If this is a new off state, track it
+            if (previousState !== 'off' && currentData && !isMachineOffline(currentData)) {
+              console.log(`Machine ${machineId} randomly going offline`);
+              trackMachineOffline(machineId, currentTimestamp.toISOString());
+            }
+          } else {
+            // Regular non-off state
+            ct1 = getRandomFloat(0.5, 6.0);
+            ct2 = getRandomFloat(0.5, 6.0);
+            ct3 = Math.floor(getRandomFloat(0.0, 6.0)); // Integer for CT3 (bigint in DB)
+            ctAvg = getRandomFloat(0.5, 15.0); // Keep CT_Avg within normal range
+            totalCurrent = generatePossiblyHighTotalCurrent();
+            
+            // New state should not be "off" since we're generating non-zero values
+            let possibleStates = MACHINE_STATES.filter(state => state !== 'off');
+            newState = getRandomItem(possibleStates);
+            
+            // Make sure the new state is different from the previous state
+            while (newState === previousState && possibleStates.length > 1) {
+              possibleStates = possibleStates.filter(state => state !== newState);
+              newState = getRandomItem(possibleStates);
+            }
+            
+            // If was previously off, track coming back online
+            if (currentData && isMachineOffline(currentData)) {
+              console.log(`Machine ${machineId} randomly coming back online after being offline`);
+              trackMachineOnline(machineId, currentTimestamp.toISOString());
+            }
           }
         }
       }
@@ -185,13 +216,13 @@ export const useMockDataGenerator = () => {
       console.log(`Created new record for machine ${machineId}: state changed to ${newState} at ${insertTimestamp.toISOString()}`);
       
       // Check if we need to track machine going offline
-      if (ct1 === 0 && ct2 === 0 && ct3 === 0 && totalCurrent === 0 && currentData && !isMachineOffline(currentData)) {
+      if (newState === 'off' && currentData && !isMachineOffline(currentData)) {
         console.log(`Machine ${machineId} is going offline`);
         trackMachineOffline(machineId, insertTimestamp.toISOString());
       }
       
       // Check if machine is coming back online after being offline
-      if (!(ct1 === 0 && ct2 === 0 && ct3 === 0 && totalCurrent === 0) && currentData && isMachineOffline(currentData)) {
+      if (newState !== 'off' && currentData && isMachineOffline(currentData)) {
         console.log(`Machine ${machineId} is coming back online after being offline`);
         trackMachineOnline(machineId, insertTimestamp.toISOString());
       }
