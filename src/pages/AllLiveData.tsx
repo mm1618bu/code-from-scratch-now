@@ -80,9 +80,8 @@ const AllLiveData: React.FC = () => {
                 <p className="text-gray-300 text-sm">
                   Live Data from Supabase
                 </p>
-                <p className="text-xs text-sage flex items-center mt-1">
-                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                  Auto-refreshing every 5 seconds
+                <p className="text-xs text-gray-400">
+                  Manual refresh only
                 </p>
               </div>
               <div className="flex flex-col items-end">
