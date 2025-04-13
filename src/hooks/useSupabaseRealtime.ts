@@ -83,7 +83,7 @@ export const useSupabaseRealtime = (
               const downtimeInfo = await trackMachineOnline(newData.machineId, newData.created_at);
               
               // If we have downtime info and the callback exists, call it
-              if (downtimeInfo && onDowntimeAlert) {
+              if (downtimeInfo !== undefined && onDowntimeAlert) {
                 onDowntimeAlert(downtimeInfo);
               }
             }

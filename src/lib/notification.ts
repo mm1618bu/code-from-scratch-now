@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Types for our notification system
@@ -331,7 +330,7 @@ export const trackMachineOffline = (machineId: string, timestamp: string): void 
 };
 
 // Track machine coming back online and create notification
-export const trackMachineOnline = async (machineId: string, timestamp: string): Promise<void> => {
+export const trackMachineOnline = async (machineId: string, timestamp: string): Promise<MachineDowntimeNotification | undefined> => {
   // Check if we were tracking this machine being offline
   const offlineRecord = offlineMachinesMap.get(machineId);
   
