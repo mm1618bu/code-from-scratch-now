@@ -68,7 +68,7 @@ export const useMockDataGenerator = () => {
       // Create a fresh timestamp for this database operation
       const insertTimestamp = new Date();
       
-      // Always insert a new record with a unique ID
+      // Insert only a single record
       const { error: insertError } = await supabase
         .from('liveData')
         .insert({
@@ -101,9 +101,6 @@ export const useMockDataGenerator = () => {
       // Check if Total Current exceeds threshold and send alert notification
       if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {
         console.log(`Total Current threshold exceeded for machine ${machineId}: ${totalCurrent}`);
-        // Explicitly log that we're sending the alert notification
-        console.log(`Sending Total Current alert notification for ${totalCurrent}`);
-        
         notifyTotalCurrentThresholdAlert({
           machineId,
           totalCurrent,
@@ -134,12 +131,12 @@ export const useMockDataGenerator = () => {
         description: "No longer generating random machine state changes"
       });
     } else {
-      // Start generation
+      // Start generation - exactly one record every 5 seconds
       const id = setInterval(generateStateChange, 5000) as unknown as number;
       setIntervalId(id);
       toast({
         title: "Mock Data Generation Started",
-        description: "Generating random machine state changes every 5 seconds"
+        description: "Generating one random machine state change every 5 seconds"
       });
       // Generate one immediately
       generateStateChange();
