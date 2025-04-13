@@ -54,7 +54,7 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="w-full max-w-md">
-          <Link to="/mongodb">
+          <Link to="/all-live-data">
             <Button className="w-full bg-sage hover:bg-sage/90 flex items-center gap-2">
               <Database size={18} />
               View Live Data
