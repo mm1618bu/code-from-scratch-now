@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LiveDataItem } from '@/types/liveData';
@@ -10,6 +10,43 @@ export const useSupabaseRealtime = (
   onNewAlert: (data: LiveDataItem) => void
 ) => {
   const { toast } = useToast();
+  const lastRefreshTimeRef = useRef<number>(Date.now());
+  const pendingRefreshRef = useRef<boolean>(false);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Throttled refresh function that ensures we don't refresh more than once every 5 seconds
+  const throttledRefresh = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
+    
+    // If we've already scheduled a refresh, don't schedule another one
+    if (pendingRefreshRef.current) {
+      return;
+    }
+    
+    // If it's been less than 5 seconds since the last refresh,
+    // schedule a refresh for when 5 seconds have passed
+    if (timeSinceLastRefresh < 5000) {
+      pendingRefreshRef.current = true;
+      
+      // Clear any existing timeout
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      // Schedule a new refresh
+      refreshTimeoutRef.current = setTimeout(() => {
+        onFetchData();
+        lastRefreshTimeRef.current = Date.now();
+        pendingRefreshRef.current = false;
+        refreshTimeoutRef.current = null;
+      }, 5000 - timeSinceLastRefresh);
+    } else {
+      // If it's been more than 5 seconds, refresh immediately
+      onFetchData();
+      lastRefreshTimeRef.current = now;
+    }
+  }, [onFetchData]);
 
   useEffect(() => {
     const channel = supabase
@@ -21,7 +58,8 @@ export const useSupabaseRealtime = (
       }, (payload) => {
         console.log('Real-time update received in useSupabaseRealtime hook:', payload);
         
-        onFetchData();
+        // Use the throttled refresh function instead of calling onFetchData directly
+        throttledRefresh();
         
         if (payload.new && 
             typeof payload.new === 'object' && 
@@ -59,7 +97,12 @@ export const useSupabaseRealtime = (
       });
       
     return () => {
+      // Clean up timeout if component unmounts
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
       supabase.removeChannel(channel);
     };
-  }, [onFetchData, onNewAlert, toast]);
+  }, [throttledRefresh, onNewAlert, toast, onFetchData]);
 };
