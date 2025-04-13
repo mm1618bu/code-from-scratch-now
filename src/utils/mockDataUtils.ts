@@ -25,3 +25,14 @@ export const generatePossiblyHighTotalCurrent = (): number => {
   // Otherwise generate normal value
   return getRandomFloat(1.5, TOTAL_CURRENT_THRESHOLD - 1.0);
 };
+
+// Helper to check if a machine is considered offline
+export const isMachineOffline = (data: Record<string, any>): boolean => {
+  return (
+    data.state === "off" ||
+    (data.CT1 === 0 &&
+    data.CT2 === 0 &&
+    data.CT3 === 0 &&
+    data.total_current === 0)
+  );
+};

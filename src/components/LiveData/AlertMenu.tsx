@@ -50,6 +50,10 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
     }
   };
   
+  // Count alerts by type
+  const downtimeAlertCount = currentAlerts.filter(a => a.type === 'downtime').length;
+  const highCurrentAlertCount = currentAlerts.filter(a => a.type === 'high-current').length;
+  
   return (
     <Popover open={showAlerts} onOpenChange={setShowAlerts}>
       <PopoverTrigger asChild>
@@ -114,16 +118,13 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[200px] bg-white">
                 <DropdownMenuItem onClick={() => setFilterType("All Activity")}>
-                  All Activity
+                  All Activity ({currentAlerts.length})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("High Current Alert")}>
-                  High Current Alert
+                  High Current Alert ({highCurrentAlertCount})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("Downtime Alert")}>
-                  Downtime Alert
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Node Alert")}>
-                  Node Alert
+                  Downtime Alert ({downtimeAlertCount})
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -155,7 +156,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                     key={`${alert.machineId}-${index}`}
                     className={cn(
                       "p-4 border-b border-zinc-200", 
-                      index % 2 === 0 ? "bg-white" : "bg-zinc-50"
+                      index % 2 === 0 ? "bg-white" : "bg-zinc-50",
+                      alert.type === 'downtime' ? "bg-blue-50" : ""
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -163,7 +165,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                         {alert.type === 'high-current' ? (
                           <AlertCircle className="h-4 w-4 text-red-500" />
                         ) : (
-                          <PowerOff className="h-4 w-4 text-amber-500" />
+                          <PowerOff className="h-4 w-4 text-blue-500" />
                         )}
                         <span className="text-xs text-zinc-500">{alertType}</span>
                       </div>
@@ -174,9 +176,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       <div className="font-medium text-zinc-800">
                         {alert.type === 'high-current' 
                           ? `High Current on ${alert.machineId}` 
-                          : alert.type === 'downtime' 
-                            ? `${alert.machineId} Downtime Alert` 
-                            : `Machine ${alert.machineId}`}
+                          : `${alert.machineId} Downtime Alert`}
                       </div>
                       
                       {alert.type === 'high-current' && (
@@ -209,24 +209,22 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       )}
                     </div>
                     
-                    {(alert.type === 'high-current' && alert.value && alert.value >= 15) || alert.type === 'downtime' ? (
-                      <div className="flex gap-2 mt-3">
-                        <Button 
-                          className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-1 px-4 rounded text-sm h-9"
-                        >
-                          <Check className="h-4 w-4 mr-1" /> Acknowledged
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="border-red-400 text-red-500 hover:bg-red-50 font-medium py-1 px-4 rounded text-sm h-9"
-                        >
-                          <X className="h-4 w-4 mr-1" /> Ignore
-                        </Button>
-                      </div>
-                    ) : null}
+                    <div className="flex gap-2 mt-3">
+                      <Button 
+                        className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-1 px-4 rounded text-sm h-9"
+                      >
+                        <Check className="h-4 w-4 mr-1" /> Acknowledged
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-red-400 text-red-500 hover:bg-red-50 font-medium py-1 px-4 rounded text-sm h-9"
+                      >
+                        <X className="h-4 w-4 mr-1" /> Ignore
+                      </Button>
+                    </div>
                   </div>
                 );
-              })
+              }).filter(Boolean)
             )}
           </div>
           
