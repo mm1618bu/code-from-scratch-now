@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
@@ -15,12 +14,10 @@ import LiveDataTable from '@/components/LiveData/LiveDataTable';
 import DataPagination from '@/components/LiveData/DataPagination';
 import MockDataGenerator from '@/components/MockDataGenerator';
 import MachineGenerator from '@/components/MachineGenerator';
-import { useToast } from '@/hooks/use-toast';
 
 const AllLiveData: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
   
   const {
     loading,
@@ -46,7 +43,6 @@ const AllLiveData: React.FC = () => {
     liveData
   } = useLiveData();
 
-  // Debug alerts when they change
   useEffect(() => {
     if (currentAlerts.length > 0) {
       console.log("Current alerts in AllLiveData:", currentAlerts);
@@ -55,15 +51,6 @@ const AllLiveData: React.FC = () => {
 
   const handleRefreshData = () => {
     fetchLiveData();
-    toast({
-      title: "Data refreshed",
-      description: `Found ${liveData.length} records`,
-      variant: "default"
-    });
-  };
-
-  const handleSortDirectionChange = () => {
-    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
   return (
@@ -140,7 +127,6 @@ const AllLiveData: React.FC = () => {
                 machineIdFilter={machineIdFilter}
                 getStateColor={getStateColor}
                 sortDirection={sortDirection}
-                onSortChange={handleSortDirectionChange}
               />
             </div>
           </ScrollArea>
