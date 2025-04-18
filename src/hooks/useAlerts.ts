@@ -1,14 +1,53 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertItem } from '@/components/LiveData/AlertMenu';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
 import { LiveDataItem } from '@/types/liveData';
 import { MachineDowntimeNotification } from '@/lib/notification';
+import { useToast } from '@/hooks/use-toast';
 
 export const useAlerts = () => {
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
   const [currentAlerts, setCurrentAlerts] = useState<AlertItem[]>([]);
+  const { toast } = useToast();
+
+  // Announce new alerts with toast notifications
+  useEffect(() => {
+    if (currentAlerts.length > 0) {
+      console.log('Current alerts available:', currentAlerts.length);
+      
+      // Only show toast for the most recent alert if there are new alerts
+      const latestAlert = currentAlerts[currentAlerts.length - 1];
+      
+      if (latestAlert) {
+        let alertTitle = '';
+        let alertDescription = '';
+        let alertVariant: 'default' | 'destructive' | 'success' | 'warning' | 'info' = 'default';
+        
+        if (latestAlert.type === 'high-current') {
+          alertTitle = `High Current Alert: ${latestAlert.machineId}`;
+          alertDescription = `Current value: ${latestAlert.value?.toFixed(2)} A`;
+          alertVariant = 'destructive';
+        } else if (latestAlert.type === 'downtime') {
+          alertTitle = `Downtime Alert: ${latestAlert.machineId}`;
+          alertDescription = `Offline for ${latestAlert.downtimeDuration} minutes`;
+          alertVariant = 'warning';
+        } else if (latestAlert.type === 'offline-status') {
+          alertTitle = `${latestAlert.machineId} Still Offline`;
+          alertDescription = `Offline for ${latestAlert.downtimeDuration} minutes and counting`;
+          alertVariant = 'info';
+        }
+        
+        // Show toast notification
+        toast({
+          title: alertTitle,
+          description: alertDescription,
+          variant: alertVariant
+        });
+      }
+    }
+  }, [currentAlerts.length]);
 
   const checkForAlerts = (data: LiveDataItem[]) => {
     const highCurrentItems = data.filter(item => item.total_current >= 15.0);
@@ -34,6 +73,11 @@ export const useAlerts = () => {
       
       setAlertCount(prev => prev + highCurrentItems.length);
       
+      // Show alerts panel if we have alerts
+      if (newAlerts.length > 0) {
+        setShowAlerts(true);
+      }
+      
       highCurrentItems.forEach(item => {
         notifyTotalCurrentThresholdAlert({
           machineId: item.machineId,
@@ -56,10 +100,13 @@ export const useAlerts = () => {
       setCurrentAlerts(prev => {
         const key = `high-current-${newAlert.machineId}`;
         const filtered = prev.filter(a => !(a.type === 'high-current' && a.machineId === newAlert.machineId));
-        return [...filtered, newAlert];
+        const updatedAlerts = [...filtered, newAlert];
+        console.log('Updated high current alerts:', updatedAlerts.length);
+        return updatedAlerts;
       });
       
       setAlertCount(prev => prev + 1);
+      setShowAlerts(true);
       
       notifyTotalCurrentThresholdAlert({
         machineId: newData.machineId,
@@ -91,7 +138,9 @@ export const useAlerts = () => {
         const filtered = prev.filter(a => 
           !(a.type === 'offline-status' && a.machineId === newAlert.machineId)
         );
-        return [...filtered, newAlert];
+        const updatedAlerts = [...filtered, newAlert];
+        console.log('Updated offline status alerts:', updatedAlerts.length);
+        return updatedAlerts;
       } else {
         // For actual downtime alerts, check for duplicates
         const exists = prev.some(a => 
@@ -104,7 +153,10 @@ export const useAlerts = () => {
         if (exists) {
           return prev;
         }
-        return [...prev, newAlert];
+        
+        const updatedAlerts = [...prev, newAlert];
+        console.log('Updated downtime alerts:', updatedAlerts.length);
+        return updatedAlerts;
       }
     });
     
