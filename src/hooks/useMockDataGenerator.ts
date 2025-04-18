@@ -70,7 +70,7 @@ export const useMockDataGenerator = () => {
         ? generateCTValues(true)  // Generate non-zero CT values if active
         : { ct1: 0, ct2: 0, ct3: 0, ctAvg: 0, totalCurrent: 0 };
 
-      // Check for state change from 'off' to another state
+      // **State Change Alert**
       if (record.currentState === 'off' && newState !== 'off') {
         setAlerts(prevAlerts => [
           ...prevAlerts,
@@ -82,7 +82,7 @@ export const useMockDataGenerator = () => {
         ]);
       }
 
-      // Check if total current exceeds 15.0
+      // **High Current Alert**
       if (ctValues.totalCurrent > 15.0) {
         setAlerts(prevAlerts => [
           ...prevAlerts,
@@ -93,7 +93,7 @@ export const useMockDataGenerator = () => {
           }
         ]);
       }
-      
+
       console.log(`Updating state for ${machineId} from ${record.currentState} to ${newState} with CT values:`, 
                  { CT1: ctValues.ct1, CT2: ctValues.ct2, CT3: ctValues.ct3, CT_Avg: ctValues.ctAvg, total: ctValues.totalCurrent });
       
