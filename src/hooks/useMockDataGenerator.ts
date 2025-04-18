@@ -85,27 +85,28 @@ export const useMockDataGenerator = () => {
       
       const isActive = newState !== 'off';
       
-      // Generate completely new values for each state change
-      const { ct1, ct2, ct3, ctAvg, totalCurrent } = generateCTValues(isActive);
+      // Generate completely new CT values for each state change - ensure they're different each time
+      const newRecordId = uuidv4(); // Generate a new record ID
+      const ctValues = generateCTValues(isActive);
       
-      console.log(`Changing state for ${machineId} to ${newState} with CT values:`, 
-                 { CT1: ct1, CT2: ct2, CT3: ct3, CT_Avg: ctAvg, total: totalCurrent });
+      console.log(`Changing state for ${machineId} from ${record.currentState} to ${newState} with CT values:`, 
+                 { CT1: ctValues.ct1, CT2: ctValues.ct2, CT3: ctValues.ct3, CT_Avg: ctValues.ctAvg, total: ctValues.totalCurrent });
       
       try {
         // Create a completely new record with the updated state and values
         const { error } = await supabase
           .from('liveData')
           .insert({
-            _id: uuidv4(),
+            _id: newRecordId,
             machineId: machineId,
             state: newState,
             created_at: new Date().toISOString(),
             state_duration: currentDuration,
-            CT1: ct1,
-            CT2: ct2,
-            CT3: ct3,
-            CT_Avg: ctAvg,
-            total_current: totalCurrent,
+            CT1: ctValues.ct1,
+            CT2: ctValues.ct2,
+            CT3: ctValues.ct3,
+            CT_Avg: ctValues.ctAvg,
+            total_current: ctValues.totalCurrent,
             fault_status: getRandomItem(FAULT_STATUSES),
             fw_version: getRandomFloat(1.0, 5.0, 1),
             mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
@@ -117,12 +118,19 @@ export const useMockDataGenerator = () => {
           throw error;
         }
 
-        // Update the record's current state in our ref
-        if (activeRecordsRef.current[recordId]) {
-          activeRecordsRef.current[recordId].currentState = newState;
-        }
+        // Remove the old record from tracking and add the new one
+        delete activeRecordsRef.current[recordId];
         
-        console.log(`State changed for ${machineId} at ${currentDuration}s to ${newState}`);
+        // Add the new record to our tracking
+        activeRecordsRef.current[newRecordId] = {
+          recordId: newRecordId,
+          startTime: new Date(),
+          machineId,
+          currentState: newState,
+          stateDuration: currentDuration
+        };
+        
+        console.log(`Successfully changed state for ${machineId} to ${newState} - new record ID: ${newRecordId}`);
       } catch (error) {
         console.error('Error updating machine state:', error);
       }
@@ -177,6 +185,7 @@ export const useMockDataGenerator = () => {
 
   const updateStateDurations = async () => {
     const now = new Date();
+    // Create a snapshot of the current records to avoid modification during iteration
     const recordsToUpdate = { ...activeRecordsRef.current };
     
     // Update each active record
