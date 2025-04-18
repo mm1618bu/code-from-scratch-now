@@ -22,7 +22,7 @@ export const useSupabaseRealtime = (
   const offlineCheckIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    console.log('Setting up Supabase realtime subscription for alerts only - NO DATA REFRESH');
+    console.log('Setting up Supabase realtime subscription for alerts including state changes and high current');
     
     // Cancel any existing subscription to prevent multiple instances
     if (channelRef.current) {
@@ -31,71 +31,112 @@ export const useSupabaseRealtime = (
       channelRef.current = null;
     }
     
-    // Set up a new subscription specifically for new inserts only
+    // Set up a new subscription for both inserts and updates
     const channel = supabase
-      .channel('alerts-only-new-inserts')
+      .channel('alerts-and-changes')
       .on('postgres_changes', { 
-        event: 'INSERT', // Only listen for new inserts, not existing data 
+        event: 'INSERT', 
         schema: 'public', 
         table: 'liveData' 
       }, async (payload) => {
-        console.log('New record inserted, processing for alerts only:', payload);
+        console.log('New record inserted:', payload);
+        processPayload(payload, 'INSERT');
+      })
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'liveData' 
+      }, async (payload) => {
+        console.log('Record updated:', payload);
+        processPayload(payload, 'UPDATE');
+      })
+      .subscribe((status) => {
+        console.log('Supabase subscription status:', status);
+      });
+    
+    // Function to process both inserts and updates
+    const processPayload = async (payload: any, eventType: string) => {
+      if (payload.new && 
+          typeof payload.new === 'object' && 
+          'machineId' in payload.new) {
         
-        // Only process alerts for new inserts
-        if (payload.new && 
-            typeof payload.new === 'object' && 
-            'total_current' in payload.new && 
-            'machineId' in payload.new) {
-          
-          const newData = payload.new as LiveDataItem;
-          
-          // Process alerts for the new data
-          console.log('Processing alert for new insert only');
+        const newData = payload.new as LiveDataItem;
+        
+        // Log detailed information for debugging
+        console.log(`Processing ${eventType} for ${newData.machineId}:`, {
+          state: newData.state,
+          totalCurrent: newData.total_current,
+          previousState: payload.old?.state,
+          CT1: newData.CT1,
+          CT2: newData.CT2,
+          CT3: newData.CT3
+        });
+        
+        // Check for high current - process alerts regardless of event type
+        if (newData.total_current >= 15.0) {
+          console.log(`High current detected (${newData.total_current}A) for ${newData.machineId}`);
           onNewAlert(newData);
           
-          // Handle state change notifications for new inserts with high current
-          if ('state' in newData && 
-              newData.total_current >= 15.0 && 
-              payload.old && 
-              typeof payload.old === 'object' && 
-              'state' in payload.old && 
-              payload.old.state !== newData.state) {
-            
-            notifyMachineStateChange({
-              machineId: newData.machineId,
-              previousState: payload.old.state as string,
-              newState: newData.state as string,
-              timestamp: new Date(newData.created_at).toISOString(),
-              totalCurrent: newData.total_current
-            });
+          // Show a toast for high current
+          toast({
+            title: `High Current: ${newData.machineId}`,
+            description: `Current value: ${newData.total_current.toFixed(2)} A`,
+            variant: "destructive"
+          });
+        }
+        
+        // Handle state changes if we have previous state information (in updates)
+        if ('state' in newData && 
+            payload.old && 
+            typeof payload.old === 'object' && 
+            'state' in payload.old && 
+            payload.old.state !== newData.state) {
+          
+          console.log(`State change detected for ${newData.machineId}: ${payload.old.state} -> ${newData.state}`);
+          
+          // Always notify of state changes regardless of current level
+          notifyMachineStateChange({
+            machineId: newData.machineId,
+            previousState: payload.old.state as string,
+            newState: newData.state as string,
+            timestamp: new Date(newData.created_at).toISOString(),
+            totalCurrent: newData.total_current
+          });
+          
+          // Show a toast for state change
+          toast({
+            title: `State Change: ${newData.machineId}`,
+            description: `${payload.old.state} → ${newData.state}`,
+            variant: "info"
+          });
+          
+          // Process the alert with the latest state information
+          onNewAlert(newData);
+        }
+        
+        // Check for machine offline/online transitions
+        if (payload.old && typeof payload.old === 'object') {
+          const prevData = payload.old as Record<string, any>;
+          
+          // Check if machine is going offline
+          if (isMachineOffline(newData) && !isMachineOffline(prevData)) {
+            console.log(`Machine ${newData.machineId} went offline`);
+            trackMachineOffline(newData.machineId, newData.created_at);
           }
           
-          // Check for machine offline/online transitions
-          if (payload.old && typeof payload.old === 'object') {
-            const prevData = payload.old as Record<string, any>;
+          // Check if machine is coming back online
+          if (!isMachineOffline(newData) && isMachineOffline(prevData)) {
+            console.log(`Machine ${newData.machineId} came back online`);
+            const downtimeInfo = await trackMachineOnline(newData.machineId, newData.created_at);
             
-            // Check if machine is going offline
-            if (isMachineOffline(newData) && !isMachineOffline(prevData)) {
-              console.log(`Machine ${newData.machineId} went offline`);
-              trackMachineOffline(newData.machineId, newData.created_at);
-            }
-            
-            // Check if machine is coming back online
-            if (!isMachineOffline(newData) && isMachineOffline(prevData)) {
-              console.log(`Machine ${newData.machineId} came back online`);
-              const downtimeInfo = await trackMachineOnline(newData.machineId, newData.created_at);
-              
-              // If we have downtime info and the callback exists, call it
-              if (downtimeInfo && onDowntimeAlert) {
-                onDowntimeAlert(downtimeInfo);
-              }
+            // If we have downtime info and the callback exists, call it
+            if (downtimeInfo && onDowntimeAlert) {
+              onDowntimeAlert(downtimeInfo);
             }
           }
         }
-      })
-      .subscribe((status) => {
-        console.log('Alert-only subscription status (new inserts only):', status);
-      });
+      }
+    };
     
     // Store the channel reference so we can clean it up later
     channelRef.current = channel;
@@ -129,5 +170,5 @@ export const useSupabaseRealtime = (
         offlineCheckIntervalRef.current = null;
       }
     };
-  }, [onDowntimeAlert, onNewAlert]); // Add onDowntimeAlert to dependency array
+  }, [onDowntimeAlert, onNewAlert, toast]); // Add toast to dependency array
 };

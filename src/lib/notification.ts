@@ -258,28 +258,27 @@ export const notifyTotalCurrentThresholdAlert = async (alert: TotalCurrentAlertN
 
 // Handle machine state change notification
 export const notifyMachineStateChange = async (stateChange: MachineStateChange): Promise<void> => {
-  if (!stateChange.totalCurrent || stateChange.totalCurrent < 15.0) {
-    console.log('Skipping state change notification as total current is below threshold');
-    return;
-  }
+  console.log(`State change for Machine ${stateChange.machineId}: ${stateChange.previousState} to ${stateChange.newState}, current: ${stateChange.totalCurrent || 'N/A'}`);
   
-  // Send browser notification
+  // Send browser notification for all state changes
   const hasChangedToError = stateChange.newState === 'error';
   const urgencyLevel = hasChangedToError ? 'Critical' : 'Info';
   
   await sendBrowserNotification(
-    `${urgencyLevel}: Machine ${stateChange.machineId} State Change (High Current)`,
+    `${urgencyLevel}: Machine ${stateChange.machineId} State Change`,
     {
       body: `State changed from ${stateChange.previousState} to ${stateChange.newState}
-Total Current: ${stateChange.totalCurrent.toFixed(2)}`,
+${stateChange.totalCurrent ? `Total Current: ${stateChange.totalCurrent.toFixed(2)}` : ''}`,
       icon: '/favicon.ico',
       tag: `machine-state-${stateChange.machineId}`,
       requireInteraction: hasChangedToError,
     }
   );
   
-  // Send email notification
-  await sendEmailNotification(stateChange, 'STATE_CHANGE');
+  // Send email notification only for high current state changes
+  if (stateChange.totalCurrent && stateChange.totalCurrent >= 15.0) {
+    await sendEmailNotification(stateChange, 'STATE_CHANGE');
+  }
 };
 
 // In-memory storage for tracking machine offline status

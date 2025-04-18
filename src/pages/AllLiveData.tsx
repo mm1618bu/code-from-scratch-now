@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -8,17 +8,19 @@ import { ArrowLeft, Database, RefreshCw } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLiveData } from '@/hooks/useLiveData';
 import { getStateColor } from '@/utils/stateColors';
-import HeaderActions from '@/components/LiveData/HeaderActions';
+import LiveDataHeader from '@/components/LiveData/LiveDataHeader';
 import StateFilter from '@/components/LiveData/StateFilter';
 import MachineIdFilter from '@/components/LiveData/MachineIdFilter';
 import LiveDataTable from '@/components/LiveData/LiveDataTable';
 import DataPagination from '@/components/LiveData/DataPagination';
 import MockDataGenerator from '@/components/MockDataGenerator';
 import MachineGenerator from '@/components/MachineGenerator';
+import { useToast } from '@/hooks/use-toast';
 
 const AllLiveData: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const {
     loading,
@@ -41,11 +43,30 @@ const AllLiveData: React.FC = () => {
     totalPages,
     currentData,
     filteredData,
-    liveData
+    liveData,
+    fetchInitialData
   } = useLiveData();
+
+  // Initialize data on component mount
+  useEffect(() => {
+    console.log("AllLiveData component mounted, fetching initial data");
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  // Debug alerts when they change
+  useEffect(() => {
+    if (currentAlerts.length > 0) {
+      console.log("Current alerts in AllLiveData:", currentAlerts);
+    }
+  }, [currentAlerts]);
 
   const handleRefreshData = () => {
     fetchLiveData();
+    toast({
+      title: "Data refreshed",
+      description: `Found ${liveData.length} records`,
+      variant: "default"
+    });
   };
 
   const handleSortDirectionChange = () => {
@@ -69,9 +90,9 @@ const AllLiveData: React.FC = () => {
       </header>
 
       <div className="flex-grow w-full max-w-7xl p-6">
-        <HeaderActions 
+        <LiveDataHeader 
           loading={loading}
-          handleRefreshData={handleRefreshData}
+          fetchLiveData={handleRefreshData}
           alertCount={alertCount}
           showAlerts={showAlerts}
           setShowAlerts={setShowAlerts}

@@ -12,6 +12,11 @@ export const useAlerts = () => {
   const [currentAlerts, setCurrentAlerts] = useState<AlertItem[]>([]);
   const { toast } = useToast();
 
+  // Debug alerts whenever they change
+  useEffect(() => {
+    console.log('Current alerts in useAlerts hook:', currentAlerts);
+  }, [currentAlerts]);
+
   // Announce new alerts with toast notifications
   useEffect(() => {
     if (currentAlerts.length > 0) {
@@ -29,6 +34,10 @@ export const useAlerts = () => {
           alertTitle = `High Current Alert: ${latestAlert.machineId}`;
           alertDescription = `Current value: ${latestAlert.value?.toFixed(2)} A`;
           alertVariant = 'destructive';
+        } else if (latestAlert.type === 'state-change') {
+          alertTitle = `State Change: ${latestAlert.machineId}`;
+          alertDescription = `${latestAlert.previousState} → ${latestAlert.newState}`;
+          alertVariant = 'info';
         } else if (latestAlert.type === 'downtime') {
           alertTitle = `Downtime Alert: ${latestAlert.machineId}`;
           alertDescription = `Offline for ${latestAlert.downtimeDuration} minutes`;
@@ -47,12 +56,14 @@ export const useAlerts = () => {
         });
       }
     }
-  }, [currentAlerts.length]);
+  }, [currentAlerts.length, toast]);
 
   const checkForAlerts = (data: LiveDataItem[]) => {
+    console.log(`Checking ${data.length} items for alerts`);
     const highCurrentItems = data.filter(item => item.total_current >= 15.0);
     
     if (highCurrentItems.length > 0) {
+      console.log(`Found ${highCurrentItems.length} high current items`);
       const newAlerts = highCurrentItems.map(item => ({
         machineId: item.machineId,
         value: item.total_current,
@@ -89,7 +100,14 @@ export const useAlerts = () => {
   };
 
   const processAlert = (newData: LiveDataItem) => {
+    console.log('Processing alert for:', newData.machineId, {
+      state: newData.state,
+      totalCurrent: newData.total_current
+    });
+    
+    // Track high current alerts
     if (newData.total_current >= 15.0) {
+      console.log(`High current detected for ${newData.machineId}: ${newData.total_current}A`);
       const newAlert = {
         machineId: newData.machineId,
         value: newData.total_current,
@@ -114,12 +132,51 @@ export const useAlerts = () => {
         timestamp: new Date(newData.created_at).toISOString()
       });
     }
+    
+    // Track state changes (this will be caught by the subscription in useSupabaseRealtime)
+    // No special handling needed here as it's handled in the subscription
+  };
+
+  // Add a new method to handle state change alerts
+  const addStateChangeAlert = (machineId: string, previousState: string, newState: string, timestamp: string) => {
+    console.log(`Adding state change alert for ${machineId}: ${previousState} → ${newState}`);
+    
+    const newAlert: AlertItem = {
+      machineId,
+      previousState,
+      newState,
+      timestamp: new Date(timestamp).toLocaleString(),
+      type: 'state-change' as any // Type casting as the AlertItem type needs to be updated
+    };
+    
+    setCurrentAlerts(prev => {
+      // Check if we already have this exact state change
+      const exists = prev.some(a => 
+        a.type === 'state-change' && 
+        a.machineId === newAlert.machineId &&
+        a.previousState === newAlert.previousState &&
+        a.newState === newAlert.newState
+      );
+      
+      if (exists) {
+        return prev;
+      }
+      
+      const updatedAlerts = [...prev, newAlert];
+      console.log('Updated state change alerts:', updatedAlerts.length);
+      return updatedAlerts;
+    });
+    
+    setAlertCount(prev => prev + 1);
+    setShowAlerts(true);
   };
 
   const addDowntimeAlert = (downtimeInfo: MachineDowntimeNotification) => {
     // Create a unique key for offline status updates
     const isStatusUpdate = !downtimeInfo.onTimestamp || downtimeInfo.onTimestamp === downtimeInfo.offTimestamp;
     const alertType = isStatusUpdate ? 'offline-status' : 'downtime';
+    
+    console.log(`Adding ${alertType} alert for ${downtimeInfo.machineId}, duration: ${downtimeInfo.downtimeDuration} minutes`);
     
     const newAlert: AlertItem = {
       machineId: downtimeInfo.machineId,
@@ -180,6 +237,7 @@ export const useAlerts = () => {
     clearAlerts,
     checkForAlerts,
     processAlert,
+    addStateChangeAlert,
     addDowntimeAlert
   };
 };

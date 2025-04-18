@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, BellRing, ChevronLeft, AlertCircle, Clock, Calendar, Check, X, PowerOff } from 'lucide-react';
+import { Bell, BellRing, ChevronLeft, AlertCircle, Clock, Calendar, Check, X, PowerOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -12,11 +12,13 @@ export interface AlertItem {
   machineId: string;
   value?: number;
   timestamp: string;
-  type: 'high-current' | 'downtime' | 'offline-status';
+  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change';
   downtimeDuration?: number;
   offTimestamp?: string;
   onTimestamp?: string;
   isStatusUpdate?: boolean;
+  previousState?: string;
+  newState?: string;
 }
 
 interface AlertMenuProps {
@@ -44,6 +46,11 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
       console.log('Alerts available but not showing, opening alerts panel:', currentAlerts);
     }
   }, [currentAlerts, showAlerts]);
+  
+  // Log alerts for debugging
+  React.useEffect(() => {
+    console.log('Current alerts in AlertMenu:', currentAlerts);
+  }, [currentAlerts]);
   
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -84,6 +91,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   const downtimeAlertCount = currentAlerts.filter(a => a.type === 'downtime').length;
   const offlineStatusCount = currentAlerts.filter(a => a.type === 'offline-status').length;
   const highCurrentAlertCount = currentAlerts.filter(a => a.type === 'high-current').length;
+  const stateChangeAlertCount = currentAlerts.filter(a => a.type === 'state-change').length;
   
   // Sort alerts to show newest first
   const sortedAlerts = [...currentAlerts].sort((a, b) => {
@@ -101,6 +109,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
           onClick={() => {
             if (currentAlerts.length > 0) {
               console.log('Showing alerts:', currentAlerts.length);
+              setShowAlerts(true);
             } else {
               console.log('No alerts to show');
               toast({
@@ -172,6 +181,9 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               <DropdownMenuItem onClick={() => setFilterType("High Current Alert")}>
                 High Current Alert ({highCurrentAlertCount})
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType("State Change")}>
+                State Change ({stateChangeAlertCount})
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilterType("Downtime Alert")}>
                 Downtime Alert ({downtimeAlertCount})
               </DropdownMenuItem>
@@ -192,6 +204,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               let alertType;
               if (alert.type === 'high-current') {
                 alertType = "High Current Alert";
+              } else if (alert.type === 'state-change') {
+                alertType = "State Change";
               } else if (alert.type === 'downtime') {
                 alertType = "Downtime Alert";
               } else if (alert.type === 'offline-status') {
@@ -211,6 +225,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   className={cn(
                     "p-4 border-b border-zinc-200", 
                     index % 2 === 0 ? "bg-white" : "bg-zinc-50",
+                    alert.type === 'state-change' ? "bg-blue-50" : "",
                     alert.type === 'downtime' ? "bg-blue-50" : "",
                     alert.type === 'offline-status' ? "bg-orange-50" : "",
                     alert.type === 'high-current' ? "bg-red-50" : ""
@@ -220,16 +235,16 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                     <div className="flex items-center gap-2">
                       {alert.type === 'high-current' ? (
                         <AlertCircle className="h-4 w-4 text-red-500" />
+                      ) : alert.type === 'state-change' ? (
+                        <RefreshCw className="h-4 w-4 text-blue-500" />
                       ) : (
                         <PowerOff className="h-4 w-4 text-blue-500" />
                       )}
                       <span className="text-xs text-zinc-500">{alertType}</span>
                     </div>
                     <span className="text-xs text-zinc-400">
-                      {new Date(alert.type === 'downtime' && alert.onTimestamp ? 
-                        alert.onTimestamp : alert.timestamp).toLocaleDateString()} · 
-                      {formatTimestamp(alert.type === 'downtime' && alert.onTimestamp ? 
-                        alert.onTimestamp : alert.timestamp)}
+                      {new Date(alert.timestamp).toLocaleDateString()} · 
+                      {formatTimestamp(alert.timestamp)}
                     </span>
                   </div>
                   
@@ -237,6 +252,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                     <div className="font-medium text-zinc-800">
                       {alert.type === 'high-current' 
                         ? `High Current on ${alert.machineId}` 
+                        : alert.type === 'state-change'
+                        ? `${alert.machineId} State Changed`
                         : alert.type === 'offline-status'
                         ? `${alert.machineId} Still Offline`
                         : `${alert.machineId} Downtime Alert`}
@@ -250,6 +267,20 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           {alert.value && alert.value >= 15 && 
                             <span className="text-red-500 ml-1">(Above threshold of 15.0 A)</span>
                           }
+                        </div>
+                      </div>
+                    )}
+                    
+                    {alert.type === 'state-change' && (
+                      <div className="text-sm text-zinc-600">
+                        Machine state was changed
+                        <div className="text-xs text-zinc-500 mt-1 flex flex-col gap-1">
+                          <span className="font-semibold text-blue-700">
+                            {alert.previousState} → {alert.newState}
+                          </span>
+                          <span>
+                            <span className="font-medium">At:</span> {new Date(alert.timestamp).toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     )}
