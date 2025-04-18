@@ -24,18 +24,24 @@ export const useMockDataGenerator = () => {
   const startTimeRef = useRef<Date | null>(null);
   const zeroValuesTimeoutRef = useRef<number | null>(null);
   const machineStartTimeRef = useRef<Record<string, Date>>({});
+  const debugTimerRef = useRef<number | null>(null);
 
   const startDemoUseCase = () => {
     forceOfflineMachine('MACH001');
     startTimeRef.current = new Date();
     setDemoUseCase(true);
     
+    toast({
+      title: "Demo Use Case Started",
+      description: "MACH001 will be offline for 3 minutes with zero current values",
+    });
+    
     setTimeout(() => {
       clearForceOfflineMachine('MACH001');
       setDemoUseCase(false);
       toast({
-        title: "Demo Use Case Started",
-        description: "MACH001 will be offline for 3 minutes with zero current values",
+        title: "Demo Use Case Completed",
+        description: "MACH001's forced offline period has ended",
       });
     }, 3 * 60 * 1000);
   };
@@ -61,8 +67,18 @@ export const useMockDataGenerator = () => {
       
       const previousState = currentData?.state || 'off';
       const machineStartTime = machineStartTimeRef.current[machineId];
+      
       const thirtySecondsPassed = machineStartTime && 
         (currentTimestamp.getTime() - machineStartTime.getTime() >= 30000);
+      
+      console.log(`Machine ${machineId} status check:`, {
+        previousState,
+        hasStartTime: !!machineStartTime,
+        startTime: machineStartTime,
+        thirtySecondsPassed,
+        currentTime: currentTimestamp,
+        timeSinceStart: machineStartTime ? currentTimestamp.getTime() - machineStartTime.getTime() : 'N/A'
+      });
       
       let stateDuration = 0;
       if (currentData?.created_at) {
@@ -93,6 +109,7 @@ export const useMockDataGenerator = () => {
       } else if (!machineStartTime && (previousState === 'off' || !previousState)) {
         newState = 'off';
         machineStartTimeRef.current[machineId] = new Date();
+        console.log(`Setting start time for ${machineId}:`, machineStartTimeRef.current[machineId]);
       } else if (thirtySecondsPassed) {
         do {
           newState = getRandomItem(MACHINE_STATES);
@@ -103,7 +120,7 @@ export const useMockDataGenerator = () => {
       
       let ct1: number, ct2: number, ct3: number, ctAvg: number, totalCurrent: number;
       
-      if (isForced || (machineStartTime && !thirtySecondsPassed)) {
+      if (isForced || newState === 'off') {
         ct1 = 0.0;
         ct2 = 0.0;
         ct3 = 0.0;
@@ -184,14 +201,26 @@ export const useMockDataGenerator = () => {
         clearTimeout(zeroValuesTimeoutRef.current);
         zeroValuesTimeoutRef.current = null;
       }
+      if (debugTimerRef.current !== null) {
+        clearInterval(debugTimerRef.current);
+        debugTimerRef.current = null;
+      }
+      
       setDemoUseCase(false);
       startTimeRef.current = null;
+      machineStartTimeRef.current = {};
+      
       toast({
         title: "Mock Data Generation Stopped",
         description: "No longer generating mock data"
       });
     } else {
       startTimeRef.current = new Date();
+      machineStartTimeRef.current = {};
+      
+      debugTimerRef.current = window.setInterval(() => {
+        console.log('Current machine start times:', { ...machineStartTimeRef.current });
+      }, 10000) as unknown as number;
       
       const id = setInterval(generateStateChange, 5000) as unknown as number;
       setIntervalId(id);
@@ -224,8 +253,12 @@ export const useMockDataGenerator = () => {
       if (zeroValuesTimeoutRef.current !== null) {
         clearTimeout(zeroValuesTimeoutRef.current);
       }
+      if (debugTimerRef.current !== null) {
+        clearInterval(debugTimerRef.current);
+      }
       setDemoUseCase(false);
       startTimeRef.current = null;
+      machineStartTimeRef.current = {};
     };
   }, [intervalId]);
 

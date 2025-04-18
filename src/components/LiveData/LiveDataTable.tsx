@@ -118,7 +118,7 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
           ) : currentData.length > 0 ? (
             currentData.map((item, index) => {
               // Use the helper function to check if machine is offline
-              const isOffline = isMachineOffline(item);
+              const isOffline = item.state === 'off';
               const recordId = item._id || `${item.machineId}-${item.created_at}-${index}`;
               const realTimeDuration = realTimeDurations[recordId] || item.state_duration || 0;
               
@@ -132,29 +132,27 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
                 >
                   <TableCell className="text-white font-medium">{item.machineId}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${
-                      isOffline ? 'bg-blue-500/20 text-blue-400' : getStateColor(item.state)
-                    }`}>
-                      {isOffline && item.state !== 'off' ? 'off' : item.state}
+                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStateColor(item.state)}`}>
+                      {item.state}
                     </span>
                   </TableCell>
                   <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>
-                    {isOffline ? '0' : item.CT1}
+                    {item.CT1}
                   </TableCell>
                   <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>
-                    {isOffline ? '0' : item.CT2}
+                    {item.CT2}
                   </TableCell>
                   <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>
-                    {isOffline ? '0' : item.CT3}
+                    {item.CT3}
                   </TableCell>
                   <TableCell className={`text-gray-300 ${isOffline ? 'font-bold text-blue-400' : ''}`}>
-                    {isOffline ? '0' : item.CT_Avg}
+                    {item.CT_Avg}
                   </TableCell>
                   <TableCell className={
                     isOffline ? 'text-blue-400 font-bold' : 
                     item.total_current >= 15.0 ? 'text-red-400 font-bold' : 'text-gray-300'
                   }>
-                    {isOffline ? '0' : item.total_current}
+                    {item.total_current}
                     {isOffline && (
                       <span className="ml-2 px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">
                         OFFLINE
