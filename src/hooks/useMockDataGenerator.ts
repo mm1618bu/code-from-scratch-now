@@ -59,32 +59,40 @@ export const useMockDataGenerator = () => {
     try {
       const { data: currentData } = await supabase
         .from('liveData')
-        .select('state')
+        .select('state, created_at')
         .eq('machineId', machineId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       
       const previousState = currentData?.state || 'off';
-      
-      // Check if the machine was started in 'off' state and 30 seconds have passed
       const machineStartTime = machineStartTimeRef.current[machineId];
       const thirtySecondsPassed = machineStartTime && 
         (currentTimestamp.getTime() - machineStartTime.getTime() >= 30000);
+      
+      // Calculate state duration in seconds
+      let stateDuration = 0;
+      if (currentData?.created_at) {
+        const createdAtTime = new Date(currentData.created_at).getTime();
+        const timeSinceCreation = currentTimestamp.getTime() - createdAtTime;
+        
+        if (thirtySecondsPassed) {
+          // If 30 seconds have passed, calculate duration from that point
+          stateDuration = Math.floor((timeSinceCreation - 30000) / 1000);
+          if (stateDuration < 0) stateDuration = 0;
+        }
+      }
       
       // Determine new state based on conditions
       let newState;
       
       if (isForced) {
-        // If machine is forced offline, always use 'off' state
         newState = 'off';
       } else if (thirtySecondsPassed && previousState === 'off') {
-        // After 30 seconds, ensure state is not 'off'
         do {
           newState = getRandomItem(MACHINE_STATES);
         } while (newState === 'off');
         
-        // Clear the start time as we don't need it anymore
         delete machineStartTimeRef.current[machineId];
         
         toast({
@@ -92,23 +100,19 @@ export const useMockDataGenerator = () => {
           description: `${machineId} is now ${newState} after initial 30 seconds offline period`,
         });
       } else if (!machineStartTime && (previousState === 'off' || !previousState)) {
-        // If it's a new machine or was previously off, start/keep in 'off' state and record the time
         newState = 'off';
         machineStartTimeRef.current[machineId] = new Date();
       } else if (thirtySecondsPassed) {
-        // After 30 seconds, allow any state except keeping the same state
         do {
           newState = getRandomItem(MACHINE_STATES);
         } while (newState === previousState);
       } else {
-        // Within first 30 seconds and not a new machine, maintain current state
         newState = previousState;
       }
       
       // Generate current values based on state and time conditions
       let ct1, ct2, ct3, ctAvg, totalCurrent;
       
-      // If machine is forced offline or in first 30 seconds, set all values to 0
       if (isForced || (machineStartTime && !thirtySecondsPassed)) {
         ct1 = 0;
         ct2 = 0;
@@ -116,7 +120,6 @@ export const useMockDataGenerator = () => {
         ctAvg = 0;
         totalCurrent = 0;
       } else {
-        // After 30 seconds or for machines that were already running, ensure all values are >= 1
         ct1 = Math.max(1.0, getRandomFloat(1.0, 6.0));
         ct2 = Math.max(1.0, getRandomFloat(1.0, 6.0));
         ct3 = Math.max(1.0, getRandomFloat(1.0, 6.0));
@@ -124,10 +127,8 @@ export const useMockDataGenerator = () => {
         totalCurrent = Math.max(1.0, generatePossiblyHighTotalCurrent());
       }
       
-      // Set fault status based on machine state
       const faultStatus = newState === 'off' ? 'normal' : getRandomItem(FAULT_STATUSES);
       
-      // Create a fresh timestamp for this database operation
       const insertTimestamp = new Date();
       
       const { error: insertError } = await supabase
@@ -136,7 +137,7 @@ export const useMockDataGenerator = () => {
           machineId: machineId,
           state: newState,
           created_at: insertTimestamp.toISOString(),
-          state_duration: Math.floor(Math.random() * 3600),
+          state_duration: stateDuration,
           total_current: totalCurrent,
           CT_Avg: ctAvg,
           CT1: ct1,
