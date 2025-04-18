@@ -26,8 +26,8 @@ export const useMockDataGenerator = () => {
   }>>({});
 
   // Generate new random CT values for non-off states
-  const generateCTValues = (isOff: boolean) => {
-    if (isOff) {
+  const generateCTValues = (isActive: boolean) => {
+    if (!isActive) {
       return {
         ct1: 0,
         ct2: 0,
@@ -54,9 +54,22 @@ export const useMockDataGenerator = () => {
   };
 
   const updateRecordState = async (recordId: string, machineId: string, currentDuration: number) => {
+    if (!activeRecordsRef.current[recordId]) {
+      console.error(`Record ${recordId} not found in activeRecordsRef`);
+      return;
+    }
+
     // Change state every 30 seconds
     if (currentDuration > 0 && currentDuration % 30 === 0) {
       console.log(`Time to change state for ${machineId} at ${currentDuration}s`);
+      
+      // Get the record from our ref
+      const record = activeRecordsRef.current[recordId];
+      if (!record) {
+        console.error(`Record ${recordId} not found when trying to change state`);
+        return;
+      }
+      
       let newState;
       // For first state change (at 30s), ensure it's not 'off'
       if (currentDuration === 30) {
@@ -65,21 +78,21 @@ export const useMockDataGenerator = () => {
         } while (newState === 'off');
       } else {
         // For subsequent changes, get any state except current one
-        const record = activeRecordsRef.current[recordId];
         do {
           newState = getRandomItem(MACHINE_STATES);
         } while (newState === record.currentState);
       }
       
-      const isOff = newState === 'off';
+      const isActive = newState !== 'off';
       
       // Generate completely new values for each state change
-      const { ct1, ct2, ct3, ctAvg, totalCurrent } = generateCTValues(!isOff);
+      const { ct1, ct2, ct3, ctAvg, totalCurrent } = generateCTValues(isActive);
       
       console.log(`Changing state for ${machineId} to ${newState} with CT values:`, 
                  { CT1: ct1, CT2: ct2, CT3: ct3, CT_Avg: ctAvg, total: totalCurrent });
       
       try {
+        // Create a completely new record with the updated state and values
         const { error } = await supabase
           .from('liveData')
           .insert({
@@ -99,7 +112,10 @@ export const useMockDataGenerator = () => {
             hi: Math.floor(Math.random() * 100).toString()
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating new state record:', error);
+          throw error;
+        }
 
         // Update the record's current state in our ref
         if (activeRecordsRef.current[recordId]) {
@@ -139,7 +155,10 @@ export const useMockDataGenerator = () => {
           hi: Math.floor(Math.random() * 100).toString()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating initial record:', error);
+        throw error;
+      }
 
       // Store the record info in our ref
       activeRecordsRef.current[recordId] = {
@@ -158,14 +177,23 @@ export const useMockDataGenerator = () => {
 
   const updateStateDurations = async () => {
     const now = new Date();
+    const recordsToUpdate = { ...activeRecordsRef.current };
     
     // Update each active record
-    for (const recordId of Object.keys(activeRecordsRef.current)) {
-      const record = activeRecordsRef.current[recordId];
+    for (const recordId of Object.keys(recordsToUpdate)) {
+      const record = recordsToUpdate[recordId];
+      if (!record || !record.startTime) {
+        console.error(`Invalid record or startTime for ${recordId}`);
+        delete activeRecordsRef.current[recordId]; // Clean up invalid records
+        continue;
+      }
+      
       const elapsedSeconds = Math.floor((now.getTime() - record.startTime.getTime()) / 1000);
       
       // Update the duration in our ref
-      record.stateDuration = elapsedSeconds;
+      if (activeRecordsRef.current[recordId]) {
+        activeRecordsRef.current[recordId].stateDuration = elapsedSeconds;
+      }
       
       // Check if we need to change state based on duration
       await updateRecordState(recordId, record.machineId, elapsedSeconds);
@@ -193,8 +221,9 @@ export const useMockDataGenerator = () => {
       // Set up interval for duration updates and state changes
       const id = setInterval(() => {
         updateStateDurations();
-        // Generate a new record every 5 seconds
-        if (Math.random() > 0.5) { // Only generate new records sometimes for variety
+        
+        // Generate a new record every 5 seconds with 50% probability
+        if (Math.random() > 0.5) {
           generateStateChange(); 
         }
       }, 1000) as unknown as number;
