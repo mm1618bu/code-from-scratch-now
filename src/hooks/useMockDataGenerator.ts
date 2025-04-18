@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -11,19 +12,19 @@ import {
 } from '@/utils/mockDataUtils';
 
 export const useMockDataGenerator = () => {
+  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [intervalId, setIntervalId] = useState<number | null>(null);
   const [demoUseCase, setDemoUseCase] = useState(false);
-  const [alerts, setAlerts] = useState<{ id: string, message: string, type: 'success' | 'warning' }[]>([]); // Stores alerts
-
   const activeRecordsRef = useRef<Record<string, { 
     recordId: string,
     startTime: Date,
     machineId: string,
     currentState: string,
-    stateDuration: number,
-    totalCurrent: number
+    stateDuration: number
   }>>({});
+  
+  const [alerts, setAlerts] = useState<{ machineId: string, message: string, type: string }[]>([]); // Stores alerts
 
   const generateCTValues = (isActive: boolean) => {
     if (!isActive) {
@@ -70,26 +71,15 @@ export const useMockDataGenerator = () => {
         ? generateCTValues(true)  // Generate non-zero CT values if active
         : { ct1: 0, ct2: 0, ct3: 0, ctAvg: 0, totalCurrent: 0 };
 
-      // **State Change Alert**
-      if (record.currentState === 'off' && newState !== 'off') {
+      // Check if state changed from 'off' to 'on'
+      if (record.currentState === 'off' && newState === 'on') {
+        // Add state-change alert for "off" to "on"
         setAlerts(prevAlerts => [
           ...prevAlerts,
           {
-            id: uuidv4(),
-            message: `Machine ${machineId} state changed from 'off' to '${newState}'`,
-            type: 'success'
-          }
-        ]);
-      }
-
-      // **High Current Alert**
-      if (ctValues.totalCurrent > 15.0) {
-        setAlerts(prevAlerts => [
-          ...prevAlerts,
-          {
-            id: uuidv4(),
-            message: `Machine ${machineId} total current is above 15.0: ${ctValues.totalCurrent}`,
-            type: 'warning'
+            machineId,
+            message: `Machine ${machineId} state changed from 'off' to 'on'`,
+            type: 'state-change'
           }
         ]);
       }
@@ -118,7 +108,6 @@ export const useMockDataGenerator = () => {
         }
 
         activeRecordsRef.current[recordId].currentState = newState;
-        activeRecordsRef.current[recordId].totalCurrent = ctValues.totalCurrent;  // Update the total current
         
         console.log(`Successfully updated state for ${machineId} to ${newState}`);
       } catch (error) {
@@ -162,8 +151,7 @@ export const useMockDataGenerator = () => {
         startTime: currentTimestamp,
         machineId,
         currentState: 'off',  // Starts as 'off'
-        stateDuration: 0,  // Initial state_duration is 0
-        totalCurrent: 0  // Initial total_current is 0
+        stateDuration: 0  // Initial state_duration is 0
       };
 
       console.log(`Created new record for ${machineId} with ID ${recordId} in 'off' state with zero CT values`);
@@ -203,6 +191,10 @@ export const useMockDataGenerator = () => {
       activeRecordsRef.current = {};
       setDemoUseCase(false);
       
+      toast({
+        title: "Mock Data Generation Stopped",
+        description: "No longer generating mock data"
+      });
     } else {
       generateStateChange();
       
@@ -215,6 +207,11 @@ export const useMockDataGenerator = () => {
       }, 1000) as unknown as number;
       
       setIntervalId(id);
+      
+      toast({
+        title: "Mock Data Generation Started",
+        description: "Generating mock data with state changes every 30 seconds"
+      });
     }
     
     setIsGenerating(!isGenerating);
@@ -234,6 +231,6 @@ export const useMockDataGenerator = () => {
     isGenerating,
     toggleDataGeneration,
     demoUseCase,
-    alerts // Expose the alerts for use in the UI
+    alerts // Exposing alerts to be used elsewhere, e.g. in the UI
   };
 };
