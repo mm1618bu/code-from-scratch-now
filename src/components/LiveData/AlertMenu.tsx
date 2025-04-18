@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bell, BellRing, ChevronLeft, AlertCircle, Clock, Calendar, Check, X, PowerOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -15,6 +15,12 @@ export interface AlertItem {
   offTimestamp?: string;
   onTimestamp?: string;
   isStatusUpdate?: boolean;
+}
+
+interface MachineState {
+  machineId: string;
+  state: string; // e.g., "off", "on", "running"
+  totalCurrent: number; // Current in Amperes
 }
 
 interface AlertMenuProps {
@@ -34,12 +40,14 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
 }) => {
   const [readStatus, setReadStatus] = React.useState(false);
   const [filterType, setFilterType] = React.useState<string>("All Activity");
-  
+  const [machineStates, setMachineStates] = useState<MachineState[]>([]); // Track machine states
+  const [generatedAlerts, setGeneratedAlerts] = useState<AlertItem[]>([]); // Dynamically generated alerts
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
   const formatDuration = (minutes: number) => {
     if (minutes < 60) {
       return `${minutes} min${minutes !== 1 ? 's' : ''}`;
@@ -49,15 +57,61 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
       return `${hours} hr${hours !== 1 ? 's' : ''} ${remainingMinutes} min${remainingMinutes !== 1 ? 's' : ''}`;
     }
   };
-  
+
+  // Function to monitor machine states and generate alerts
+  useEffect(() => {
+    const newAlerts: AlertItem[] = [];
+
+    machineStates.forEach((machine) => {
+      // Condition 1: Machine state changes from "off" to any other state
+      if (machine.state !== "off") {
+        const existingAlert = currentAlerts.find(
+          (alert) =>
+            alert.machineId === machine.machineId &&
+            alert.type === "state-change"
+        );
+        if (!existingAlert) {
+          newAlerts.push({
+            machineId: machine.machineId,
+            timestamp: new Date().toISOString(),
+            type: "state-change",
+          });
+        }
+      }
+
+      // Condition 2: Total current is 15.0 or above
+      if (machine.totalCurrent >= 15.0) {
+        const existingAlert = currentAlerts.find(
+          (alert) =>
+            alert.machineId === machine.machineId &&
+            alert.type === "high-current"
+        );
+        if (!existingAlert) {
+          newAlerts.push({
+            machineId: machine.machineId,
+            value: machine.totalCurrent,
+            timestamp: new Date().toISOString(),
+            type: "high-current",
+          });
+        }
+      }
+    });
+
+    // Update the generated alerts
+    setGeneratedAlerts((prevAlerts) => [...prevAlerts, ...newAlerts]);
+  }, [machineStates, currentAlerts]);
+
+  // Combine current alerts and dynamically generated alerts
+  const allAlerts = [...currentAlerts, ...generatedAlerts];
+
   // Count alerts by type
-  const downtimeAlertCount = currentAlerts.filter(a => a.type === 'downtime').length;
-  const offlineStatusCount = currentAlerts.filter(a => a.type === 'offline-status').length;
-  const highCurrentAlertCount = currentAlerts.filter(a => a.type === 'high-current').length;
-  const stateChangeAlertCount = currentAlerts.filter(a => a.type === 'state-change').length;
-  
+  const downtimeAlertCount = allAlerts.filter(a => a.type === 'downtime').length;
+  const offlineStatusCount = allAlerts.filter(a => a.type === 'offline-status').length;
+  const highCurrentAlertCount = allAlerts.filter(a => a.type === 'high-current').length;
+  const stateChangeAlertCount = allAlerts.filter(a => a.type === 'state-change').length;
+
   // Sort alerts to show newest first
-  const sortedAlerts = [...currentAlerts].sort((a, b) => {
+  const sortedAlerts = [...allAlerts].sort((a, b) => {
     const dateA = a.onTimestamp ? new Date(a.onTimestamp).getTime() : new Date(a.timestamp).getTime();
     const dateB = b.onTimestamp ? new Date(b.onTimestamp).getTime() : new Date(b.timestamp).getTime();
     return dateB - dateA;
@@ -70,11 +124,11 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
           variant="outline"
           className="border-sage text-sage hover:bg-sage/20 relative"
         >
-          {currentAlerts.length > 0 ? (
+          {allAlerts.length > 0 ? (
             <>
               <BellRing className="h-4 w-4 mr-2 animate-pulse" />
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {currentAlerts.length}
+                {allAlerts.length}
               </span>
             </>
           ) : (
@@ -84,7 +138,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         </Button>
       </PopoverTrigger>
       
-      {currentAlerts.length > 0 && (
+      {allAlerts.length > 0 && (
         <PopoverContent 
           className="w-[380px] p-0 bg-zinc-100 border border-sage/30 text-zinc-800 shadow-lg z-50" 
           align="end"
@@ -127,7 +181,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[200px] bg-white">
                 <DropdownMenuItem onClick={() => setFilterType("All Activity")}>
-                  All Activity ({currentAlerts.length})
+                  All Activity ({allAlerts.length})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("High Current Alert")}>
                   High Current Alert ({highCurrentAlertCount})
