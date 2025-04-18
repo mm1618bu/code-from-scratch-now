@@ -65,7 +65,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
     machineStates.forEach((machine) => {
       // Condition 1: Machine state changes from "off" to any other state
       if (machine.state !== "off") {
-        const existingAlert = currentAlerts.find(
+        const existingAlert = generatedAlerts.find(
           (alert) =>
             alert.machineId === machine.machineId &&
             alert.type === "state-change"
@@ -81,7 +81,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
 
       // Condition 2: Total current is 15.0 or above
       if (machine.totalCurrent >= 15.0) {
-        const existingAlert = currentAlerts.find(
+        const existingAlert = generatedAlerts.find(
           (alert) =>
             alert.machineId === machine.machineId &&
             alert.type === "high-current"
@@ -98,8 +98,10 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
     });
 
     // Update the generated alerts
-    setGeneratedAlerts((prevAlerts) => [...prevAlerts, ...newAlerts]);
-  }, [machineStates, currentAlerts]);
+    if (newAlerts.length > 0) {
+      setGeneratedAlerts((prevAlerts) => [...prevAlerts, ...newAlerts]);
+    }
+  }, [machineStates, generatedAlerts]);
 
   // Combine current alerts and dynamically generated alerts
   const allAlerts = [...currentAlerts, ...generatedAlerts];
