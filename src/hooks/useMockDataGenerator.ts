@@ -82,7 +82,7 @@ export const useMockDataGenerator = () => {
             CT3: ctValues.ct3,
             CT_Avg: ctValues.ctAvg,
             total_current: ctValues.totalCurrent,
-            state_duration: currentDuration,
+            state_duration: currentDuration,  // Track elapsed time in seconds
             fault_status: getRandomItem(FAULT_STATUSES)
           })
           .eq('_id', recordId);
@@ -114,7 +114,7 @@ export const useMockDataGenerator = () => {
           machineId: machineId,
           state: 'off',  // Initial state is 'off'
           created_at: currentTimestamp.toISOString(),
-          state_duration: 0,
+          state_duration: 0,  // Initial state_duration is 0
           CT1: 0,  // Initial CT values are 0
           CT2: 0,
           CT3: 0,
@@ -136,7 +136,7 @@ export const useMockDataGenerator = () => {
         startTime: currentTimestamp,
         machineId,
         currentState: 'off',  // Starts as 'off'
-        stateDuration: 0
+        stateDuration: 0  // Initial state_duration is 0
       };
 
       console.log(`Created new record for ${machineId} with ID ${recordId} in 'off' state with zero CT values`);
