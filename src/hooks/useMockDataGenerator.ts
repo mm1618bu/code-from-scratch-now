@@ -56,29 +56,19 @@ export const useMockDataGenerator = () => {
       return;
     }
 
+    const record = activeRecordsRef.current[recordId];
+    
     if (currentDuration > 0 && currentDuration % 30 === 0) {
       console.log(`Time to change state for ${machineId} at ${currentDuration}s`);
-      
-      const record = activeRecordsRef.current[recordId];
-      if (!record) {
-        console.error(`Record ${recordId} not found when trying to change state`);
-        return;
-      }
-      
-      let newState;
-      if (currentDuration === 30) {
-        do {
-          newState = getRandomItem(MACHINE_STATES);
-        } while (newState === 'off');
-      } else {
-        do {
-          newState = getRandomItem(MACHINE_STATES);
-        } while (newState === record.currentState);
-      }
-      
+
+      // If the state is 'off' and the duration is 30 seconds, switch to 'on'
+      let newState = record.currentState === 'off' ? 'on' : getRandomItem(MACHINE_STATES);
+
       const isActive = newState !== 'off';
-      const ctValues = generateCTValues(isActive);
-      
+      const ctValues = isActive
+        ? generateCTValues(true)  // Generate non-zero CT values if active
+        : { ct1: 0, ct2: 0, ct3: 0, ctAvg: 0, totalCurrent: 0 };
+
       console.log(`Updating state for ${machineId} from ${record.currentState} to ${newState} with CT values:`, 
                  { CT1: ctValues.ct1, CT2: ctValues.ct2, CT3: ctValues.ct3, CT_Avg: ctValues.ctAvg, total: ctValues.totalCurrent });
       
@@ -122,10 +112,10 @@ export const useMockDataGenerator = () => {
         .insert({
           _id: recordId,
           machineId: machineId,
-          state: 'off',
+          state: 'off',  // Initial state is 'off'
           created_at: currentTimestamp.toISOString(),
           state_duration: 0,
-          CT1: 0,
+          CT1: 0,  // Initial CT values are 0
           CT2: 0,
           CT3: 0,
           CT_Avg: 0,
@@ -145,7 +135,7 @@ export const useMockDataGenerator = () => {
         recordId,
         startTime: currentTimestamp,
         machineId,
-        currentState: 'off',
+        currentState: 'off',  // Starts as 'off'
         stateDuration: 0
       };
 
