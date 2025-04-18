@@ -69,17 +69,21 @@ export const useMockDataGenerator = () => {
       
       // Check if the machine was started in 'off' state and 30 seconds have passed
       const machineStartTime = machineStartTimeRef.current[machineId];
-      const shouldTurnOn = machineStartTime && 
-        previousState === 'off' && 
+      const thirtySecondsPassed = machineStartTime && 
         (currentTimestamp.getTime() - machineStartTime.getTime() >= 30000);
       
       // Determine new state based on conditions
       let newState;
+      
       if (isForced) {
+        // If machine is forced offline, always use 'off' state
         newState = 'off';
-      } else if (shouldTurnOn) {
-        // Force state to be non-off after 30 seconds
-        newState = getRandomItem(MACHINE_STATES.filter(state => state !== 'off'));
+      } else if (thirtySecondsPassed && previousState === 'off') {
+        // After 30 seconds, ensure state is not 'off'
+        do {
+          newState = getRandomItem(MACHINE_STATES);
+        } while (newState === 'off');
+        
         // Clear the start time as we don't need it anymore
         delete machineStartTimeRef.current[machineId];
         
@@ -87,32 +91,41 @@ export const useMockDataGenerator = () => {
           title: "Machine State Changed",
           description: `${machineId} is now ${newState} after initial 30 seconds offline period`,
         });
-      } else if (!machineStartTime && !previousState) {
-        // If it's a new machine, start in 'off' state and record the time
+      } else if (!machineStartTime && (previousState === 'off' || !previousState)) {
+        // If it's a new machine or was previously off, start/keep in 'off' state and record the time
         newState = 'off';
         machineStartTimeRef.current[machineId] = new Date();
-      } else {
-        newState = getRandomItem(MACHINE_STATES);
-        while (newState === previousState) {
+      } else if (thirtySecondsPassed) {
+        // After 30 seconds, allow any state except keeping the same state
+        do {
           newState = getRandomItem(MACHINE_STATES);
-        }
+        } while (newState === previousState);
+      } else {
+        // Within first 30 seconds and not a new machine, maintain current state
+        newState = previousState;
       }
       
-      // Generate current values based on state
-      const isOff = newState === 'off';
-      const shouldBeZero = isOff || (machineStartTime && 
-        (currentTimestamp.getTime() - machineStartTime.getTime() < 30000));
+      // Generate current values based on state and time conditions
+      let ct1, ct2, ct3, ctAvg, totalCurrent;
       
-      // If machine is off or within first 30 seconds, set all currents to 0
-      // Otherwise, ensure values are >= 1.0
-      const ct1 = shouldBeZero ? 0 : Math.max(1.0, getRandomFloat(1.0, 6.0));
-      const ct2 = shouldBeZero ? 0 : Math.max(1.0, getRandomFloat(1.0, 6.0));
-      const ct3 = shouldBeZero ? 0 : Math.max(1.0, Math.floor(getRandomFloat(1.0, 6.0)));
+      // If machine is forced offline or in first 30 seconds, set all values to 0
+      if (isForced || (machineStartTime && !thirtySecondsPassed)) {
+        ct1 = 0;
+        ct2 = 0;
+        ct3 = 0;
+        ctAvg = 0;
+        totalCurrent = 0;
+      } else {
+        // After 30 seconds or for machines that were already running, ensure all values are >= 1
+        ct1 = Math.max(1.0, getRandomFloat(1.0, 6.0));
+        ct2 = Math.max(1.0, getRandomFloat(1.0, 6.0));
+        ct3 = Math.max(1.0, getRandomFloat(1.0, 6.0));
+        ctAvg = Math.max(1.0, getRandomFloat(1.0, 15.0));
+        totalCurrent = Math.max(1.0, generatePossiblyHighTotalCurrent());
+      }
       
-      const ctAvg = shouldBeZero ? 0 : Math.max(1.0, getRandomFloat(1.0, 15.0));
-      const totalCurrent = shouldBeZero ? 0 : generatePossiblyHighTotalCurrent();
-      
-      const faultStatus = isOff ? 'normal' : getRandomItem(FAULT_STATUSES);
+      // Set fault status based on machine state
+      const faultStatus = newState === 'off' ? 'normal' : getRandomItem(FAULT_STATUSES);
       
       // Create a fresh timestamp for this database operation
       const insertTimestamp = new Date();
