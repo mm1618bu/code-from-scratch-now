@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,27 +25,21 @@ export const useMockDataGenerator = () => {
   const zeroValuesTimeoutRef = useRef<number | null>(null);
   const machineStartTimeRef = useRef<Record<string, Date>>({});
 
-  // Store the start time of the demo use case
   const startDemoUseCase = () => {
-    // Force MACH001 to be offline
     forceOfflineMachine('MACH001');
     startTimeRef.current = new Date();
     setDemoUseCase(true);
     
-    // Set a timeout to end the demo case after 3 minutes
     setTimeout(() => {
       clearForceOfflineMachine('MACH001');
       setDemoUseCase(false);
-      // The notification will be triggered by the next data generation cycle
-    }, 3 * 60 * 1000); // 3 minutes
-    
-    toast({
-      title: "Demo Use Case Started",
-      description: "MACH001 will be offline for 3 minutes with zero current values",
-    });
+      toast({
+        title: "Demo Use Case Started",
+        description: "MACH001 will be offline for 3 minutes with zero current values",
+      });
+    }, 3 * 60 * 1000);
   };
 
-  // Generate a simulated state change and update the database
   const generateStateChange = async () => {
     const currentTimestamp = new Date();
     let machineId = getRandomItem(MACHINE_IDS);
@@ -71,20 +64,17 @@ export const useMockDataGenerator = () => {
       const thirtySecondsPassed = machineStartTime && 
         (currentTimestamp.getTime() - machineStartTime.getTime() >= 30000);
       
-      // Calculate state duration in seconds
       let stateDuration = 0;
       if (currentData?.created_at) {
         const createdAtTime = new Date(currentData.created_at).getTime();
         const timeSinceCreation = currentTimestamp.getTime() - createdAtTime;
         
         if (thirtySecondsPassed) {
-          // If 30 seconds have passed, calculate duration from that point
           stateDuration = Math.floor((timeSinceCreation - 30000) / 1000);
           if (stateDuration < 0) stateDuration = 0;
         }
       }
       
-      // Determine new state based on conditions
       let newState;
       
       if (isForced) {
@@ -111,7 +101,6 @@ export const useMockDataGenerator = () => {
         newState = previousState;
       }
       
-      // Generate current values based on state and time conditions
       let ct1: number, ct2: number, ct3: number, ctAvg: number, totalCurrent: number;
       
       if (isForced || (machineStartTime && !thirtySecondsPassed)) {
@@ -185,10 +174,8 @@ export const useMockDataGenerator = () => {
     }
   };
 
-  // Toggle data generation on/off
   const toggleDataGeneration = () => {
     if (isGenerating) {
-      // Stop generation
       if (intervalId !== null) {
         clearInterval(intervalId);
         setIntervalId(null);
@@ -204,10 +191,8 @@ export const useMockDataGenerator = () => {
         description: "No longer generating mock data"
       });
     } else {
-      // Set the start time for zero values period
       startTimeRef.current = new Date();
       
-      // Start generation - exactly one record every 5 seconds
       const id = setInterval(generateStateChange, 5000) as unknown as number;
       setIntervalId(id);
       
@@ -216,10 +201,8 @@ export const useMockDataGenerator = () => {
         description: "Generating mock data with zero values for first 30 seconds"
       });
       
-      // Generate one immediately
       generateStateChange();
       
-      // After 30 seconds, show toast about switching to non-zero values
       zeroValuesTimeoutRef.current = window.setTimeout(() => {
         toast({
           title: "Switching to Non-Zero Values",
@@ -227,14 +210,12 @@ export const useMockDataGenerator = () => {
         });
       }, 30000) as unknown as number;
       
-      // Start the demo use case
       startDemoUseCase();
     }
     
     setIsGenerating(!isGenerating);
   };
 
-  // Clean up interval on unmount
   useEffect(() => {
     return () => {
       if (intervalId !== null) {
