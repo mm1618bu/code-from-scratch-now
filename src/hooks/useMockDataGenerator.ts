@@ -23,6 +23,7 @@ export const useMockDataGenerator = () => {
   const [intervalId, setIntervalId] = useState<number | null>(null);
   const [demoUseCase, setDemoUseCase] = useState(false);
   const startTimeRef = useRef<Date | null>(null);
+  const zeroValuesTimeoutRef = useRef<number | null>(null);
 
   // Store the start time of the demo use case
   const startDemoUseCase = () => {
@@ -53,9 +54,12 @@ export const useMockDataGenerator = () => {
     let machineId = getRandomItem(MACHINE_IDS);
     let isForced = false;
     
+    // Check if within first 30 seconds
+    const isInZeroPeriod = startTimeRef.current && 
+      (new Date().getTime() - startTimeRef.current.getTime() < 30000);
+    
     // Check if MACH001 is forced offline
     if (isForceOfflineMachine('MACH001')) {
-      // For the demo case, force the machine to be MACH001
       machineId = 'MACH001';
       isForced = true;
     }
@@ -75,25 +79,18 @@ export const useMockDataGenerator = () => {
       // Determine new state based on whether the machine is forced offline
       let newState;
       if (isForced) {
-        newState = 'off'; // Force machine to be off for our demo case
+        newState = 'off';
       } else {
-        // Check if this is MACH001 that was just brought back online
-        if (machineId === 'MACH001' && previousState === 'off' && startTimeRef.current) {
-          newState = getRandomItem(MACHINE_STATES.filter(state => state !== 'off')); // Ensure it comes back online
-          
-          // Calculate how long it was offline
+        if (previousState === 'off' && machineId === 'MACH001' && startTimeRef.current) {
+          newState = getRandomItem(MACHINE_STATES.filter(state => state !== 'off'));
           const offlineDuration = Math.round((currentTimestamp.getTime() - startTimeRef.current.getTime()) / (60 * 1000));
-          
-          // Reset the start time
           startTimeRef.current = null;
           
-          // Display toast for the machine coming back online
           toast({
             title: "Machine Back Online",
             description: `MACH001 is now online after being offline for approximately ${offlineDuration} minutes`,
           });
         } else {
-          // Normal operation - pick a random state different from the previous
           newState = getRandomItem(MACHINE_STATES);
           while (newState === previousState) {
             newState = getRandomItem(MACHINE_STATES);
@@ -101,23 +98,19 @@ export const useMockDataGenerator = () => {
         }
       }
       
-      // Generate values based on state
-      // If state is "off", all current values should be 0
+      // Generate values based on state and zero period
       const isOff = newState === 'off';
       
-      // Generate random values for currents or zero if machine is off
-      const ct1 = isOff ? 0 : getRandomFloat(0, 6.0);
-      const ct2 = isOff ? 0 : getRandomFloat(0, 6.0);
-      const ct3 = isOff ? 0 : Math.floor(getRandomFloat(0, 6.0)); // Integer for CT3 (bigint in DB)
+      // If in zero period or machine is off, set all currents to 0
+      const ct1 = isOff || isInZeroPeriod ? 0 : getRandomFloat(0, 6.0);
+      const ct2 = isOff || isInZeroPeriod ? 0 : getRandomFloat(0, 6.0);
+      const ct3 = isOff || isInZeroPeriod ? 0 : Math.floor(getRandomFloat(0, 6.0));
       
-      const ctAvg = isOff ? 0 : getRandomFloat(0, 15.0); // Keep CT_Avg within normal range
-      
-      // Total current will be 0 if state is off, otherwise use normal logic
-      const totalCurrent = isOff ? 0 : generatePossiblyHighTotalCurrent();
+      const ctAvg = isOff || isInZeroPeriod ? 0 : getRandomFloat(0, 15.0);
+      const totalCurrent = isOff || isInZeroPeriod ? 0 : generatePossiblyHighTotalCurrent();
       
       const faultStatus = isOff ? 'normal' : getRandomItem(FAULT_STATUSES);
       
-      // Create state change object for notification
       const stateChange = {
         machineId,
         previousState,
@@ -129,7 +122,6 @@ export const useMockDataGenerator = () => {
       // Create a fresh timestamp for this database operation
       const insertTimestamp = new Date();
       
-      // Insert only a single record
       const { error: insertError } = await supabase
         .from('liveData')
         .insert({
@@ -146,7 +138,7 @@ export const useMockDataGenerator = () => {
           fault_status: faultStatus,
           mac: `00:1A:2B:${machineId.slice(-2)}:FF:EE`,
           hi: Math.floor(Math.random() * 100).toString(),
-          _id: uuidv4() // Generate a unique ID for each new record
+          _id: uuidv4()
         });
       
       if (insertError) {
@@ -156,10 +148,8 @@ export const useMockDataGenerator = () => {
       
       console.log(`Created new record for machine ${machineId}: state changed to ${newState} at ${insertTimestamp.toISOString()}`);
       
-      // Only send state change notifications when generating mock data
       notifyMachineStateChange(stateChange);
       
-      // Only check for total current threshold when generating mock data
       if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {
         console.log(`Total Current threshold exceeded for machine ${machineId}: ${totalCurrent}`);
         notifyTotalCurrentThresholdAlert({
@@ -187,21 +177,39 @@ export const useMockDataGenerator = () => {
         clearInterval(intervalId);
         setIntervalId(null);
       }
+      if (zeroValuesTimeoutRef.current !== null) {
+        clearTimeout(zeroValuesTimeoutRef.current);
+        zeroValuesTimeoutRef.current = null;
+      }
       setDemoUseCase(false);
+      startTimeRef.current = null;
       toast({
         title: "Mock Data Generation Stopped",
         description: "No longer generating mock data"
       });
     } else {
+      // Set the start time for zero values period
+      startTimeRef.current = new Date();
+      
       // Start generation - exactly one record every 5 seconds
       const id = setInterval(generateStateChange, 5000) as unknown as number;
       setIntervalId(id);
+      
       toast({
         title: "Mock Data Generation Started",
-        description: "Generating one random machine state change every 5 seconds"
+        description: "Generating mock data with zero values for first 30 seconds"
       });
+      
       // Generate one immediately
       generateStateChange();
+      
+      // After 30 seconds, show toast about switching to non-zero values
+      zeroValuesTimeoutRef.current = window.setTimeout(() => {
+        toast({
+          title: "Switching to Non-Zero Values",
+          description: "Now generating random non-zero current values"
+        });
+      }, 30000) as unknown as number;
       
       // Start the demo use case
       startDemoUseCase();
@@ -216,7 +224,11 @@ export const useMockDataGenerator = () => {
       if (intervalId !== null) {
         clearInterval(intervalId);
       }
+      if (zeroValuesTimeoutRef.current !== null) {
+        clearTimeout(zeroValuesTimeoutRef.current);
+      }
       setDemoUseCase(false);
+      startTimeRef.current = null;
     };
   }, [intervalId]);
 
@@ -226,3 +238,4 @@ export const useMockDataGenerator = () => {
     demoUseCase
   };
 };
+
