@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +23,7 @@ export const useMockDataGenerator = () => {
   const [demoUseCase, setDemoUseCase] = useState(false);
   const startTimeRef = useRef<Date | null>(null);
   const zeroValuesTimeoutRef = useRef<number | null>(null);
+  const machineStartTimeRef = useRef<Record<string, Date>>({});
 
   // Store the start time of the demo use case
   const startDemoUseCase = () => {
@@ -47,25 +47,16 @@ export const useMockDataGenerator = () => {
 
   // Generate a simulated state change and update the database
   const generateStateChange = async () => {
-    // Generate a new timestamp at the exact moment this function runs
     const currentTimestamp = new Date();
-    
-    // Choose which machine to update
     let machineId = getRandomItem(MACHINE_IDS);
     let isForced = false;
     
-    // Check if within first 30 seconds
-    const isInZeroPeriod = startTimeRef.current && 
-      (new Date().getTime() - startTimeRef.current.getTime() < 30000);
-    
-    // Check if MACH001 is forced offline
     if (isForceOfflineMachine('MACH001')) {
       machineId = 'MACH001';
       isForced = true;
     }
     
     try {
-      // Get the current state for this machine to use as previous state
       const { data: currentData } = await supabase
         .from('liveData')
         .select('state')
@@ -74,50 +65,54 @@ export const useMockDataGenerator = () => {
         .limit(1)
         .maybeSingle();
       
-      const previousState = currentData?.state || getRandomItem(MACHINE_STATES);
+      const previousState = currentData?.state || 'off';
       
-      // Determine new state based on whether the machine is forced offline
+      // Check if the machine was started in 'off' state and 30 seconds have passed
+      const machineStartTime = machineStartTimeRef.current[machineId];
+      const shouldTurnOn = machineStartTime && 
+        previousState === 'off' && 
+        (currentTimestamp.getTime() - machineStartTime.getTime() >= 30000);
+      
+      // Determine new state based on conditions
       let newState;
       if (isForced) {
         newState = 'off';
+      } else if (shouldTurnOn) {
+        // Force state to be non-off after 30 seconds
+        newState = getRandomItem(MACHINE_STATES.filter(state => state !== 'off'));
+        // Clear the start time as we don't need it anymore
+        delete machineStartTimeRef.current[machineId];
+        
+        toast({
+          title: "Machine State Changed",
+          description: `${machineId} is now ${newState} after initial 30 seconds offline period`,
+        });
+      } else if (!machineStartTime && !previousState) {
+        // If it's a new machine, start in 'off' state and record the time
+        newState = 'off';
+        machineStartTimeRef.current[machineId] = new Date();
       } else {
-        if (previousState === 'off' && machineId === 'MACH001' && startTimeRef.current) {
-          newState = getRandomItem(MACHINE_STATES.filter(state => state !== 'off'));
-          const offlineDuration = Math.round((currentTimestamp.getTime() - startTimeRef.current.getTime()) / (60 * 1000));
-          startTimeRef.current = null;
-          
-          toast({
-            title: "Machine Back Online",
-            description: `MACH001 is now online after being offline for approximately ${offlineDuration} minutes`,
-          });
-        } else {
+        newState = getRandomItem(MACHINE_STATES);
+        while (newState === previousState) {
           newState = getRandomItem(MACHINE_STATES);
-          while (newState === previousState) {
-            newState = getRandomItem(MACHINE_STATES);
-          }
         }
       }
       
-      // Generate values based on state and zero period
+      // Generate current values based on state
       const isOff = newState === 'off';
+      const shouldBeZero = isOff || (machineStartTime && 
+        (currentTimestamp.getTime() - machineStartTime.getTime() < 30000));
       
-      // If in zero period or machine is off, set all currents to 0
-      const ct1 = isOff || isInZeroPeriod ? 0 : getRandomFloat(0, 6.0);
-      const ct2 = isOff || isInZeroPeriod ? 0 : getRandomFloat(0, 6.0);
-      const ct3 = isOff || isInZeroPeriod ? 0 : Math.floor(getRandomFloat(0, 6.0));
+      // If machine is off or within first 30 seconds, set all currents to 0
+      // Otherwise, ensure values are >= 1.0
+      const ct1 = shouldBeZero ? 0 : Math.max(1.0, getRandomFloat(1.0, 6.0));
+      const ct2 = shouldBeZero ? 0 : Math.max(1.0, getRandomFloat(1.0, 6.0));
+      const ct3 = shouldBeZero ? 0 : Math.max(1.0, Math.floor(getRandomFloat(1.0, 6.0)));
       
-      const ctAvg = isOff || isInZeroPeriod ? 0 : getRandomFloat(0, 15.0);
-      const totalCurrent = isOff || isInZeroPeriod ? 0 : generatePossiblyHighTotalCurrent();
+      const ctAvg = shouldBeZero ? 0 : Math.max(1.0, getRandomFloat(1.0, 15.0));
+      const totalCurrent = shouldBeZero ? 0 : generatePossiblyHighTotalCurrent();
       
       const faultStatus = isOff ? 'normal' : getRandomItem(FAULT_STATUSES);
-      
-      const stateChange = {
-        machineId,
-        previousState,
-        newState,
-        timestamp: currentTimestamp.toISOString(),
-        totalCurrent
-      };
       
       // Create a fresh timestamp for this database operation
       const insertTimestamp = new Date();
@@ -148,7 +143,13 @@ export const useMockDataGenerator = () => {
       
       console.log(`Created new record for machine ${machineId}: state changed to ${newState} at ${insertTimestamp.toISOString()}`);
       
-      notifyMachineStateChange(stateChange);
+      notifyMachineStateChange({
+        machineId,
+        previousState,
+        newState,
+        timestamp: insertTimestamp.toISOString(),
+        totalCurrent
+      });
       
       if (totalCurrent >= TOTAL_CURRENT_THRESHOLD) {
         console.log(`Total Current threshold exceeded for machine ${machineId}: ${totalCurrent}`);
@@ -238,4 +239,3 @@ export const useMockDataGenerator = () => {
     demoUseCase
   };
 };
-
