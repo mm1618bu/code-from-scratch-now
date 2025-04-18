@@ -62,7 +62,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
     const dateB = b.onTimestamp ? new Date(b.onTimestamp).getTime() : new Date(b.timestamp).getTime();
     return dateB - dateA;
   });
-  
+
   return (
     <Popover open={showAlerts} onOpenChange={setShowAlerts}>
       <PopoverTrigger asChild>
@@ -259,7 +259,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       
                       {alert.type === 'state-change' && (
                         <div className="text-sm text-zinc-600">
-                          Machine has switched from "off" to another state
+                          Machine has switched from "off" to "on"
                         </div>
                       )}
                     </div>
