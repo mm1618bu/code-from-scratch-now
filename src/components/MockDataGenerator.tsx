@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMockDataGenerator } from '@/hooks/useMockDataGenerator';
 
-const MockDataGenerator = () => {
+const MockDataGenerator = ({ onMachineStateChange }: { onMachineStateChange: (states: any[]) => void }) => {
   const { isGenerating, toggleDataGeneration, demoUseCase } = useMockDataGenerator();
   const [mockMachineStates, setMockMachineStates] = useState([
     { machineId: 'MACH001', state: 'off', totalCurrent: 0 },
@@ -12,8 +12,8 @@ const MockDataGenerator = () => {
 
     if (isGenerating) {
       interval = setInterval(() => {
-        setMockMachineStates((prevStates) =>
-          prevStates.map((machine) => {
+        setMockMachineStates((prevStates) => {
+          const updatedStates = prevStates.map((machine) => {
             if (machine.machineId === 'MACH001') {
               // Simulate state change from "off" to "running"
               const newState = machine.state === 'off' ? 'running' : 'off';
@@ -21,15 +21,20 @@ const MockDataGenerator = () => {
               return { ...machine, state: newState, totalCurrent: newCurrent };
             }
             return machine;
-          })
-        );
+          });
+
+          // Notify parent component of state changes
+          onMachineStateChange(updatedStates);
+
+          return updatedStates;
+        });
       }, 3000); // Change state every 3 seconds
     } else {
       clearInterval(interval);
     }
 
     return () => clearInterval(interval);
-  }, [isGenerating]);
+  }, [isGenerating, onMachineStateChange]);
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
