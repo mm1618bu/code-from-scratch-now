@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React from 'react';
 import SageLogo from '@/components/SageLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -43,15 +42,8 @@ const AllLiveData: React.FC = () => {
     totalPages,
     currentData,
     filteredData,
-    liveData,
-    fetchInitialData
+    liveData
   } = useLiveData();
-
-  // Initialize data on component mount
-  useEffect(() => {
-    console.log("AllLiveData component mounted, fetching initial data");
-    fetchInitialData();
-  }, [fetchInitialData]);
 
   // Debug alerts when they change
   useEffect(() => {
