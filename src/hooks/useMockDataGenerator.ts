@@ -112,14 +112,14 @@ export const useMockDataGenerator = () => {
       }
       
       // Generate current values based on state and time conditions
-      let ct1, ct2, ct3, ctAvg, totalCurrent;
+      let ct1: number, ct2: number, ct3: number, ctAvg: number, totalCurrent: number;
       
       if (isForced || (machineStartTime && !thirtySecondsPassed)) {
-        ct1 = 0;
-        ct2 = 0;
-        ct3 = 0;
-        ctAvg = 0;
-        totalCurrent = 0;
+        ct1 = 0.0;
+        ct2 = 0.0;
+        ct3 = 0.0;
+        ctAvg = 0.0;
+        totalCurrent = 0.0;
       } else {
         ct1 = Math.max(1.0, getRandomFloat(1.0, 6.0));
         ct2 = Math.max(1.0, getRandomFloat(1.0, 6.0));
