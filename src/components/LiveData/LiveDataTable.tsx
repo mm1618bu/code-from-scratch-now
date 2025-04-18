@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { LiveDataItem } from '@/types/liveData';
 import { 
@@ -33,6 +33,41 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
   sortDirection = 'desc',
   onSortChange
 }) => {
+  // Store real-time durations with record IDs as keys
+  const [realTimeDurations, setRealTimeDurations] = useState<Record<string, number>>({});
+
+  // Update durations every second
+  useEffect(() => {
+    if (currentData.length === 0) return;
+
+    // Initialize durations
+    const initialDurations: Record<string, number> = {};
+    currentData.forEach(item => {
+      const recordId = item._id || `${item.machineId}-${item.created_at}`;
+      const createdAt = new Date(item.created_at).getTime();
+      const currentTime = new Date().getTime();
+      const baseDuration = item.state_duration || 0;
+      // Calculate seconds since record creation plus the base duration
+      const secondsElapsed = Math.floor((currentTime - createdAt) / 1000);
+      initialDurations[recordId] = baseDuration + secondsElapsed;
+    });
+    setRealTimeDurations(initialDurations);
+
+    // Update durations every second
+    const intervalId = setInterval(() => {
+      setRealTimeDurations(prevDurations => {
+        const newDurations = { ...prevDurations };
+        // Increment each duration by 1 second
+        Object.keys(newDurations).forEach(key => {
+          newDurations[key] += 1;
+        });
+        return newDurations;
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [currentData]);
+
   return (
     <div className="min-w-[1200px]">
       <Table className="border-collapse">
@@ -84,10 +119,12 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
             currentData.map((item, index) => {
               // Use the helper function to check if machine is offline
               const isOffline = isMachineOffline(item);
+              const recordId = item._id || `${item.machineId}-${item.created_at}-${index}`;
+              const realTimeDuration = realTimeDurations[recordId] || item.state_duration || 0;
               
               return (
                 <TableRow 
-                  key={item._id || `${item.machineId}-${item.created_at}-${index}`} 
+                  key={recordId} 
                   className={`border-b border-dark-foreground/10 hover:bg-dark-foreground/5 ${
                     isOffline ? 'bg-blue-900/20' : 
                     item.total_current >= 15.0 ? 'bg-red-900/20' : ''
@@ -129,7 +166,7 @@ const LiveDataTable: React.FC<LiveDataTableProps> = ({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-gray-300">{item.state_duration}s</TableCell>
+                  <TableCell className="text-gray-300">{realTimeDuration}s</TableCell>
                   <TableCell className="text-gray-300">{item.fault_status}</TableCell>
                   <TableCell className="text-gray-300">{item.fw_version}</TableCell>
                   <TableCell className="text-gray-300 font-mono text-xs">{item.mac}</TableCell>
