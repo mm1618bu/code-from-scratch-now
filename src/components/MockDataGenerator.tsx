@@ -1,16 +1,44 @@
-
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMockDataGenerator } from '@/hooks/useMockDataGenerator';
 
 const MockDataGenerator = () => {
   const { isGenerating, toggleDataGeneration, demoUseCase } = useMockDataGenerator();
+  const [mockMachineStates, setMockMachineStates] = useState([
+    { machineId: 'MACH001', state: 'off', totalCurrent: 0 },
+  ]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isGenerating) {
+      interval = setInterval(() => {
+        setMockMachineStates((prevStates) =>
+          prevStates.map((machine) => {
+            if (machine.machineId === 'MACH001') {
+              // Simulate state change from "off" to "running"
+              const newState = machine.state === 'off' ? 'running' : 'off';
+              const newCurrent = newState === 'running' ? 16.0 : 0;
+              return { ...machine, state: newState, totalCurrent: newCurrent };
+            }
+            return machine;
+          })
+        );
+      }, 3000); // Change state every 3 seconds
+    } else {
+      clearInterval(interval);
+    }
+
+    return () => clearInterval(interval);
+  }, [isGenerating]);
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       {isGenerating && demoUseCase && (
         <div className="bg-sage/10 p-3 rounded-lg text-white text-xs max-w-xs">
           <p className="font-semibold">Demo Use Case Active:</p>
-          <p>MACH001 will be offline for 3 minutes with zero current values. When it returns online, an alert will notify you.</p>
+          <p>
+            MACH001 will toggle between "off" and "running" every 3 seconds. When it turns on, an alert will notify you.
+          </p>
         </div>
       )}
       <button
