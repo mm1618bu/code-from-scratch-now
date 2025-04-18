@@ -25,9 +25,38 @@ export const useMockDataGenerator = () => {
     stateDuration: number
   }>>({});
 
+  // Generate new random CT values for non-off states
+  const generateCTValues = (isOff: boolean) => {
+    if (isOff) {
+      return {
+        ct1: 0,
+        ct2: 0,
+        ct3: 0,
+        ctAvg: 0,
+        totalCurrent: 0
+      };
+    } else {
+      // Generate random values that are at least 1.0
+      const ct1 = Math.max(1.0, getRandomFloat(1.0, 6.0));
+      const ct2 = Math.max(1.0, getRandomFloat(1.0, 6.0));
+      const ct3 = Math.max(1.0, getRandomFloat(1.0, 6.0));
+      const ctAvg = Math.max(1.0, getRandomFloat(1.0, 15.0));
+      const totalCurrent = generatePossiblyHighTotalCurrent();
+      
+      return {
+        ct1,
+        ct2,
+        ct3,
+        ctAvg,
+        totalCurrent
+      };
+    }
+  };
+
   const updateRecordState = async (recordId: string, machineId: string, currentDuration: number) => {
     // Change state every 30 seconds
     if (currentDuration > 0 && currentDuration % 30 === 0) {
+      console.log(`Time to change state for ${machineId} at ${currentDuration}s`);
       let newState;
       // For first state change (at 30s), ensure it's not 'off'
       if (currentDuration === 30) {
@@ -42,12 +71,13 @@ export const useMockDataGenerator = () => {
         } while (newState === record.currentState);
       }
       
-      // Generate non-zero values for CT measurements
-      const ct1 = Math.max(1.0, getRandomFloat(1.0, 6.0));
-      const ct2 = Math.max(1.0, getRandomFloat(1.0, 6.0));
-      const ct3 = Math.max(1.0, getRandomFloat(1.0, 6.0));
-      const ctAvg = Math.max(1.0, getRandomFloat(1.0, 15.0));
-      const totalCurrent = generatePossiblyHighTotalCurrent();
+      const isOff = newState === 'off';
+      
+      // Generate completely new values for each state change
+      const { ct1, ct2, ct3, ctAvg, totalCurrent } = generateCTValues(!isOff);
+      
+      console.log(`Changing state for ${machineId} to ${newState} with CT values:`, 
+                 { CT1: ct1, CT2: ct2, CT3: ct3, CT_Avg: ctAvg, total: totalCurrent });
       
       try {
         const { error } = await supabase
@@ -89,7 +119,7 @@ export const useMockDataGenerator = () => {
     const recordId = uuidv4();
     
     try {
-      // Create initial record with 'off' state
+      // Create initial record with 'off' state and zero CT values
       const { error } = await supabase
         .from('liveData')
         .insert({
@@ -120,7 +150,7 @@ export const useMockDataGenerator = () => {
         stateDuration: 0
       };
 
-      console.log(`Created new record for ${machineId} with ID ${recordId}`);
+      console.log(`Created new record for ${machineId} with ID ${recordId} in 'off' state with zero CT values`);
     } catch (error) {
       console.error('Failed to create initial record:', error);
     }
@@ -163,7 +193,10 @@ export const useMockDataGenerator = () => {
       // Set up interval for duration updates and state changes
       const id = setInterval(() => {
         updateStateDurations();
-        generateStateChange(); // Generate new record every 5 seconds
+        // Generate a new record every 5 seconds
+        if (Math.random() > 0.5) { // Only generate new records sometimes for variety
+          generateStateChange(); 
+        }
       }, 1000) as unknown as number;
       
       setIntervalId(id);
@@ -194,4 +227,3 @@ export const useMockDataGenerator = () => {
     demoUseCase
   };
 };
-
