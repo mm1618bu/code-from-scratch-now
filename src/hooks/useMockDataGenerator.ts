@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -12,10 +11,11 @@ import {
 } from '@/utils/mockDataUtils';
 
 export const useMockDataGenerator = () => {
-  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [intervalId, setIntervalId] = useState<number | null>(null);
   const [demoUseCase, setDemoUseCase] = useState(false);
+  const [alerts, setAlerts] = useState<{ id: string, message: string, type: 'success' | 'warning' }[]>([]); // Stores alerts
+
   const activeRecordsRef = useRef<Record<string, { 
     recordId: string,
     startTime: Date,
@@ -72,20 +72,26 @@ export const useMockDataGenerator = () => {
 
       // Check for state change from 'off' to another state
       if (record.currentState === 'off' && newState !== 'off') {
-        toast({
-          title: `Machine ${machineId} state changed`,
-          description: `Machine state changed from 'off' to '${newState}'`,
-          variant: 'success'
-        });
+        setAlerts(prevAlerts => [
+          ...prevAlerts,
+          {
+            id: uuidv4(),
+            message: `Machine ${machineId} state changed from 'off' to '${newState}'`,
+            type: 'success'
+          }
+        ]);
       }
 
       // Check if total current exceeds 15.0
       if (ctValues.totalCurrent > 15.0) {
-        toast({
-          title: `Machine ${machineId} current warning`,
-          description: `Total current is above 15.0: ${ctValues.totalCurrent}`,
-          variant: 'warning'
-        });
+        setAlerts(prevAlerts => [
+          ...prevAlerts,
+          {
+            id: uuidv4(),
+            message: `Machine ${machineId} total current is above 15.0: ${ctValues.totalCurrent}`,
+            type: 'warning'
+          }
+        ]);
       }
       
       console.log(`Updating state for ${machineId} from ${record.currentState} to ${newState} with CT values:`, 
@@ -197,10 +203,6 @@ export const useMockDataGenerator = () => {
       activeRecordsRef.current = {};
       setDemoUseCase(false);
       
-      toast({
-        title: "Mock Data Generation Stopped",
-        description: "No longer generating mock data"
-      });
     } else {
       generateStateChange();
       
@@ -213,11 +215,6 @@ export const useMockDataGenerator = () => {
       }, 1000) as unknown as number;
       
       setIntervalId(id);
-      
-      toast({
-        title: "Mock Data Generation Started",
-        description: "Generating mock data with state changes every 30 seconds"
-      });
     }
     
     setIsGenerating(!isGenerating);
@@ -236,6 +233,7 @@ export const useMockDataGenerator = () => {
   return {
     isGenerating,
     toggleDataGeneration,
-    demoUseCase
+    demoUseCase,
+    alerts // Expose the alerts for use in the UI
   };
 };
