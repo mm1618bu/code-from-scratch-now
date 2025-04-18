@@ -21,7 +21,8 @@ export const useMockDataGenerator = () => {
     startTime: Date,
     machineId: string,
     currentState: string,
-    stateDuration: number
+    stateDuration: number,
+    totalCurrent: number
   }>>({});
 
   const generateCTValues = (isActive: boolean) => {
@@ -69,6 +70,24 @@ export const useMockDataGenerator = () => {
         ? generateCTValues(true)  // Generate non-zero CT values if active
         : { ct1: 0, ct2: 0, ct3: 0, ctAvg: 0, totalCurrent: 0 };
 
+      // Check for state change from 'off' to another state
+      if (record.currentState === 'off' && newState !== 'off') {
+        toast({
+          title: `Machine ${machineId} state changed`,
+          description: `Machine state changed from 'off' to '${newState}'`,
+          variant: 'success'
+        });
+      }
+
+      // Check if total current exceeds 15.0
+      if (ctValues.totalCurrent > 15.0) {
+        toast({
+          title: `Machine ${machineId} current warning`,
+          description: `Total current is above 15.0: ${ctValues.totalCurrent}`,
+          variant: 'warning'
+        });
+      }
+      
       console.log(`Updating state for ${machineId} from ${record.currentState} to ${newState} with CT values:`, 
                  { CT1: ctValues.ct1, CT2: ctValues.ct2, CT3: ctValues.ct3, CT_Avg: ctValues.ctAvg, total: ctValues.totalCurrent });
       
@@ -93,6 +112,7 @@ export const useMockDataGenerator = () => {
         }
 
         activeRecordsRef.current[recordId].currentState = newState;
+        activeRecordsRef.current[recordId].totalCurrent = ctValues.totalCurrent;  // Update the total current
         
         console.log(`Successfully updated state for ${machineId} to ${newState}`);
       } catch (error) {
@@ -136,7 +156,8 @@ export const useMockDataGenerator = () => {
         startTime: currentTimestamp,
         machineId,
         currentState: 'off',  // Starts as 'off'
-        stateDuration: 0  // Initial state_duration is 0
+        stateDuration: 0,  // Initial state_duration is 0
+        totalCurrent: 0  // Initial total_current is 0
       };
 
       console.log(`Created new record for ${machineId} with ID ${recordId} in 'off' state with zero CT values`);
