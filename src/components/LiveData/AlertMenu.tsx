@@ -48,17 +48,17 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   clearAlerts
 }) => {
   const [readStatus, setReadStatus] = React.useState(false);
-  const [filterType, setFilterType] = React.useState<string>("All Activity");
+  const [filterType, setFilterType] = React.useState<string>('All Activity');
   const [machineStates, setMachineStates] = useState<MachineState[]>([]); // Track machine states
   const [generatedAlerts, setGeneratedAlerts] = useState<AlertItem[]>([]); // Dynamically generated alerts
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
 
@@ -83,7 +83,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         ct2: totalCurrent * 0.3,
         ct3: totalCurrent * 0.4,
         ctAvg: totalCurrent / 3,
-        totalCurrent,
+        totalCurrent
       };
 
       newAlerts.push({
@@ -92,22 +92,19 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         type: 'state-update-log',
         value: totalCurrent,
         isStatusUpdate: true,
-        stateValues: ctValues,
+        stateValues: ctValues
       });
-
 
       if (machine.totalCurrent >= 15.0) {
         const existingAlert = generatedAlerts.find(
-          (alert) =>
-            alert.machineId === machine.machineId &&
-            alert.type === "high-current"
+          (alert) => alert.machineId === machine.machineId && alert.type === 'high-current'
         );
         if (!existingAlert) {
           newAlerts.push({
             machineId: machine.machineId,
             value: machine.totalCurrent,
             timestamp: new Date().toISOString(),
-            type: "high-current",
+            type: 'high-current'
           });
         }
       }
@@ -120,11 +117,11 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
 
   const allAlerts = [...currentAlerts, ...generatedAlerts];
 
-  const downtimeAlertCount = allAlerts.filter(a => a.type === 'downtime').length;
-  const offlineStatusCount = allAlerts.filter(a => a.type === 'offline-status').length;
-  const highCurrentAlertCount = allAlerts.filter(a => a.type === 'high-current').length;
-  const stateUpdateLogCount = allAlerts.filter(a => a.type === 'state-update-log').length;
-  const machineOnAlertCount = allAlerts.filter(a => a.type === 'machine-on').length;
+  const downtimeAlertCount = allAlerts.filter((a) => a.type === 'downtime').length;
+  const offlineStatusCount = allAlerts.filter((a) => a.type === 'offline-status').length;
+  const highCurrentAlertCount = allAlerts.filter((a) => a.type === 'high-current').length;
+  const stateUpdateLogCount = allAlerts.filter((a) => a.type === 'state-update-log').length;
+  const machineOnAlertCount = allAlerts.filter((a) => a.type === 'machine-on').length;
 
   const sortedAlerts = [...allAlerts].sort((a, b) => {
     const dateA = a.onTimestamp ? new Date(a.onTimestamp).getTime() : new Date(a.timestamp).getTime();
@@ -135,10 +132,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   return (
     <Popover open={showAlerts} onOpenChange={setShowAlerts}>
       <PopoverTrigger asChild>
-        <Button 
-          variant="outline"
-          className="border-sage text-sage hover:bg-sage/20 relative"
-        >
+        <Button variant="outline" className="border-sage text-sage hover:bg-sage/20 relative">
           {allAlerts.length > 0 ? (
             <>
               <BellRing className="h-4 w-4 mr-2 animate-pulse" />
@@ -152,19 +146,19 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
           Alerts
         </Button>
       </PopoverTrigger>
-      
+
       {allAlerts.length > 0 && (
-        <PopoverContent 
-          className="w-[380px] p-0 bg-zinc-100 border border-sage/30 text-zinc-800 shadow-lg z-50" 
+        <PopoverContent
+          className="w-[380px] p-0 bg-zinc-100 border border-sage/30 text-zinc-800 shadow-lg z-50"
           align="end"
           side="bottom"
           sideOffset={5}
         >
           <div className="p-3 border-b border-zinc-200 flex justify-between items-center bg-white">
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="p-0 h-8 w-8"
                 onClick={() => setShowAlerts(false)}
               >
@@ -172,7 +166,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               </Button>
               <h3 className="text-zinc-800 font-medium">Notifications</h3>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <span className="text-xs text-zinc-500">Read</span>
               <Switch
@@ -182,7 +176,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               />
             </div>
           </div>
-          
+
           <div className="p-2 border-b border-zinc-200 bg-white">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -195,57 +189,55 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[200px] bg-white">
-                <DropdownMenuItem onClick={() => setFilterType("High Current Alert")}>
+                <DropdownMenuItem onClick={() => setFilterType('High Current Alert')}>
                   High Current Alert ({highCurrentAlertCount})
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Downtime Alert")}>
+                <DropdownMenuItem onClick={() => setFilterType('Downtime Alert')}>
                   Downtime Alert ({downtimeAlertCount})
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Offline Status")}>
+                <DropdownMenuItem onClick={() => setFilterType('Offline Status')}>
                   Offline Status ({offlineStatusCount})
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Machine ON Alert")}>
+                <DropdownMenuItem onClick={() => setFilterType('Machine ON Alert')}>
                   Machine ON Alert ({machineOnAlertCount})
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          
+
           <div className="max-h-[500px] overflow-y-auto">
             {sortedAlerts.length === 0 ? (
-              <div className="p-4 text-center text-zinc-500">
-                No alerts to display
-              </div>
+              <div className="p-4 text-center text-zinc-500">No alerts to display</div>
             ) : (
               sortedAlerts.map((alert, index) => {
                 let alertType;
                 if (alert.type === 'high-current') {
-                  alertType = "High Current Alert";
+                  alertType = 'High Current Alert';
                 } else if (alert.type === 'downtime') {
-                  alertType = "Downtime Alert";
+                  alertType = 'Downtime Alert';
                 } else if (alert.type === 'offline-status') {
-                  alertType = "Offline Status";
+                  alertType = 'Offline Status';
                 } else if (alert.type === 'machine-on') {
-                  alertType = "Machine ON Alert";
+                  alertType = 'Machine ON Alert';
                 } else {
-                  console.log("Hi");
+                  console.log('Unknown alert type');
                 }
-                
-                if (filterType !== "All Activity" && filterType !== alertType) {
+
+                if (filterType !== 'All Activity' && filterType !== alertType) {
                   return null;
                 }
-                
+
                 return (
-                  <div 
+                  <div
                     key={`${alert.machineId}-${index}-${alert.type}-${alert.timestamp}`}
                     className={cn(
-                      "p-4 border-b border-zinc-200", 
-                      index % 2 === 0 ? "bg-white" : "bg-zinc-50",
-                      alert.type === 'high-current' ? "bg-red-50" : "",
-                      alert.type === 'downtime' ? "bg-blue-50" : "",
-                      alert.type === 'offline-status' ? "bg-orange-50" : "",
-                      alert.type === 'state-update-log' ? "bg-yellow-50" : "",
-                      alert.type === 'machine-on' ? "bg-emerald-50" : ""
+                      'p-4 border-b border-zinc-200',
+                      index % 2 === 0 ? 'bg-white' : 'bg-zinc-50',
+                      alert.type === 'high-current' ? 'bg-red-50' : '',
+                      alert.type === 'downtime' ? 'bg-blue-50' : '',
+                      alert.type === 'offline-status' ? 'bg-orange-50' : '',
+                      alert.type === 'state-update-log' ? 'bg-yellow-50' : '',
+                      alert.type === 'machine-on' ? 'bg-emerald-50' : ''
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -262,61 +254,45 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                         <span className="text-xs text-zinc-500">{alertType}</span>
                       </div>
                       <span className="text-xs text-zinc-400">
-                        {new Date(alert.timestamp).toLocaleDateString()} · 
-                        {formatTimestamp(alert.timestamp)}
+                        {new Date(alert.timestamp).toLocaleDateString()} · {formatTimestamp(alert.timestamp)}
                       </span>
                     </div>
-                    
+
                     <div className="mb-2">
                       <div className="font-medium text-zinc-800">
-                        {alert.type === 'machine-on' 
+                        {alert.type === 'machine-on'
                           ? `Machine ${alert.machineId} is ON`
-                          : alert.type === 'high-current' 
-                          ? `High Current on ${alert.machineId}` 
+                          : alert.type === 'high-current'
+                          ? `High Current on ${alert.machineId}`
                           : alert.type === 'downtime'
                           ? `Machine ${alert.machineId} Downtime Alert`
                           : alert.type === 'offline-status'
                           ? `${alert.machineId} Still Offline`
                           : alert.type === 'state-update-log'
-                          ? `Machine ${alert.machineId} State Update`}
+                          ? `Machine ${alert.machineId} State Update`
+                          : ''}
                       </div>
-                      
+
                       {alert.type === 'machine-on' && (
-                        <div className="text-sm text-emerald-600">
-                          Current: {alert.value?.toFixed(2)} A
-                        </div>
+                        <div className="text-sm text-emerald-600">Current: {alert.value?.toFixed(2)} A</div>
                       )}
-                      
+
                       {alert.type === 'high-current' && (
-                        <div className="text-sm text-red-600">
-                          Current: {alert.value?.toFixed(2)} A
-                        </div>
+                        <div className="text-sm text-red-600">Current: {alert.value?.toFixed(2)} A</div>
                       )}
-                      
+
                       {alert.type === 'downtime' && (
-                        <div className="text-sm text-blue-600">
-                          Offline for: {formatDuration(alert.downtimeDuration || 0)}
-                        </div>
+                        <div className="text-sm text-blue-600">Offline for: {formatDuration(alert.downtimeDuration || 0)}</div>
                       )}
-                      
+
                       {alert.type === 'state-update-log' && (
                         <div className="text-sm text-zinc-600">
                           Machine state updated with new CT values:
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT1: {alert.stateValues?.ct1?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT2: {alert.stateValues?.ct2?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT3: {alert.stateValues?.ct3?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT Average: {alert.stateValues?.ctAvg?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            Total Current: {alert.stateValues?.totalCurrent?.toFixed(2)} A
-                          </div>
+                          <div className="text-xs text-zinc-500 mt-1">CT1: {alert.stateValues?.ct1?.toFixed(2)} A</div>
+                          <div className="text-xs text-zinc-500 mt-1">CT2: {alert.stateValues?.ct2?.toFixed(2)} A</div>
+                          <div className="text-xs text-zinc-500 mt-1">CT3: {alert.stateValues?.ct3?.toFixed(2)} A</div>
+                          <div className="text-xs text-zinc-500 mt-1">CT Average: {alert.stateValues?.ctAvg?.toFixed(2)} A</div>
+                          <div className="text-xs text-zinc-500 mt-1">Total Current: {alert.stateValues?.totalCurrent?.toFixed(2)} A</div>
                         </div>
                       )}
                     </div>
@@ -325,7 +301,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
               }).filter(Boolean)
             )}
           </div>
-          
+
           <div className="p-3 bg-white flex justify-center">
             <Button variant="ghost" size="sm" onClick={clearAlerts} className="text-zinc-500 hover:text-zinc-800">
               Clear All Notifications
