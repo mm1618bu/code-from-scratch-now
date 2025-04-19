@@ -204,7 +204,7 @@ export const useMockDataGenerator = () => {
         if (Math.random() > 0.5) {
           generateStateChange(); 
         }
-      }, 1000) as unknown as number;
+      }, 5000) as unknown as number;
       
       setIntervalId(id);
       
