@@ -119,7 +119,11 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
     });
 
     if (newAlerts.length > 0) {
-      setGeneratedAlerts((prevAlerts) => [...prevAlerts, ...newAlerts]);
+      // Filter out incomplete or invalid alerts before updating the state
+      const validAlerts = newAlerts.filter(alert => alert.machineId && alert.timestamp && alert.type);
+      if (validAlerts.length > 0) {
+        setGeneratedAlerts((prevAlerts) => [...prevAlerts, ...validAlerts]);
+      }
     }
   }, [machineStates, generatedAlerts]);
 
