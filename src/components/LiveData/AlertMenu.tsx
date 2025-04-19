@@ -239,6 +239,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   <div
                     key={`${alert.machineId}-${index}-${alert.type}-${alert.timestamp}`}
                     className={cn(
+                      'p-4 border-b border-zinc-200',
+                      index % 2 === 0 ? 'bg-white' : 'bg-zinc-50',
                       alert.type === 'high-current' ? 'bg-red-50' : '',
                       alert.type === 'downtime' ? 'bg-blue-50' : '',
                       alert.type === 'offline-status' ? 'bg-orange-50' : '',
@@ -273,8 +275,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           : alert.type === 'offline-status'
                           ? `${alert.machineId} Still Offline`
                           : alert.type === 'state-update-log'
-                          ? `Machine ${alert.machineId} State Update`
-                        }
+                          ? `Machine ${alert.machineId} State Update`}
                       </div>
 
                       {alert.type === 'machine-on' && (
