@@ -10,7 +10,7 @@ export interface AlertItem {
   machineId: string;
   value?: number;
   timestamp: string;
-  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change' | 'state-update-log';
+  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change' | 'state-update-log' | 'machine-on';
   downtimeDuration?: number;
   offTimestamp?: string;
   onTimestamp?: string;
@@ -132,6 +132,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   const highCurrentAlertCount = allAlerts.filter(a => a.type === 'high-current').length;
   const stateChangeAlertCount = allAlerts.filter(a => a.type === 'state-change').length;
   const stateUpdateLogCount = allAlerts.filter(a => a.type === 'state-update-log').length;
+  const machineOnAlertCount = allAlerts.filter(a => a.type === 'machine-on').length;
 
   const sortedAlerts = [...allAlerts].sort((a, b) => {
     const dateA = a.onTimestamp ? new Date(a.onTimestamp).getTime() : new Date(a.timestamp).getTime();
@@ -220,6 +221,9 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 <DropdownMenuItem onClick={() => setFilterType("State Update Log")}>
                   State Update Log ({stateUpdateLogCount})
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("Machine ON Alert")}>
+                  Machine ON Alert ({machineOnAlertCount})
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -242,6 +246,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   alertType = "State Change";
                 } else if (alert.type === 'state-update-log') {
                   alertType = "State Update Log";
+                } else if (alert.type === 'machine-on') {
+                  alertType = "Machine ON Alert";
                 } else {
                   alertType = "Node Alert";
                 }
@@ -259,7 +265,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       alert.type === 'downtime' ? "bg-blue-50" : "",
                       alert.type === 'offline-status' ? "bg-orange-50" : "",
                       alert.type === 'state-change' ? "bg-green-50" : "",
-                      alert.type === 'state-update-log' ? "bg-yellow-50" : ""
+                      alert.type === 'state-update-log' ? "bg-yellow-50" : "",
+                      alert.type === 'machine-on' ? "bg-emerald-50" : ""
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -270,6 +277,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           <Check className="h-4 w-4 text-green-500" />
                         ) : alert.type === 'state-update-log' ? (
                           <Clock className="h-4 w-4 text-yellow-500" />
+                        ) : alert.type === 'machine-on' ? (
+                          <PowerOff className="h-4 w-4 text-emerald-500" />
                         ) : (
                           <PowerOff className="h-4 w-4 text-blue-500" />
                         )}
@@ -283,7 +292,9 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                     
                     <div className="mb-2">
                       <div className="font-medium text-zinc-800">
-                        {alert.type === 'high-current' 
+                        {alert.type === 'machine-on' 
+                          ? `Machine ${alert.machineId} is ON`
+                          : alert.type === 'high-current' 
                           ? `High Current on ${alert.machineId}` 
                           : alert.type === 'offline-status'
                           ? `${alert.machineId} Still Offline`
@@ -293,6 +304,12 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           ? `Machine ${alert.machineId} State Update`
                           : `${alert.machineId} Downtime Alert`}
                       </div>
+                      
+                      {alert.type === 'machine-on' && (
+                        <div className="text-sm text-emerald-600">
+                          Current: {alert.value?.toFixed(2)} A
+                        </div>
+                      )}
                       
                       {alert.type === 'state-update-log' && (
                         <div className="text-sm text-zinc-600">

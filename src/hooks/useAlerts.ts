@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
 import { LiveDataItem } from '@/types/liveData';
@@ -10,7 +9,7 @@ export interface AlertItem {
   machineId: string;
   value?: number;
   timestamp: string;
-  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change' | 'state-update-log';
+  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change' | 'state-update-log' | 'machine-on';
   downtimeDuration?: number;
   offTimestamp?: string;
   onTimestamp?: string;
@@ -89,6 +88,28 @@ export const useAlerts = () => {
       totalCurrent: newData.total_current
     });
     
+    // Check if machine has turned on (total current >= 1.0)
+    if (newData.total_current >= 1.0) {
+      console.log(`Machine ${newData.machineId} is now ON with current: ${newData.total_current}A`);
+      const newAlert = {
+        machineId: newData.machineId,
+        value: newData.total_current,
+        timestamp: new Date(newData.created_at).toLocaleString(),
+        type: 'machine-on' as const
+      };
+      
+      setCurrentAlerts(prev => {
+        const key = `machine-on-${newAlert.machineId}`;
+        const filtered = prev.filter(a => !(a.type === 'machine-on' && a.machineId === newAlert.machineId));
+        const updatedAlerts = [...filtered, newAlert];
+        console.log('Updated machine-on alerts:', updatedAlerts.length);
+        return updatedAlerts;
+      });
+      
+      setAlertCount(prev => prev + 1);
+      setShowAlerts(true);
+    }
+
     // Process high current alerts
     if (newData.total_current >= 15.0) {
       console.log(`High current detected for ${newData.machineId}: ${newData.total_current}A`);
