@@ -4,7 +4,6 @@ import { LiveDataItem } from '@/types/liveData';
 import { MachineDowntimeNotification } from '@/lib/notification';
 import { useToast } from '@/hooks/use-toast';
 
-// Define AlertItem interface
 export interface AlertItem {
   machineId: string;
   value?: number;

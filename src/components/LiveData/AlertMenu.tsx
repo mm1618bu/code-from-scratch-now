@@ -262,6 +262,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                     className={cn(
                       "p-4 border-b border-zinc-200", 
                       index % 2 === 0 ? "bg-white" : "bg-zinc-50",
+                      alert.type === 'high-current' ? "bg-red-50" : "",
                       alert.type === 'downtime' ? "bg-blue-50" : "",
                       alert.type === 'offline-status' ? "bg-orange-50" : "",
                       alert.type === 'state-change' ? "bg-green-50" : "",
@@ -307,6 +308,12 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       
                       {alert.type === 'machine-on' && (
                         <div className="text-sm text-emerald-600">
+                          Current: {alert.value?.toFixed(2)} A
+                        </div>
+                      )}
+                      
+                      {alert.type === 'high-current' && (
+                        <div className="text-sm text-red-600">
                           Current: {alert.value?.toFixed(2)} A
                         </div>
                       )}
