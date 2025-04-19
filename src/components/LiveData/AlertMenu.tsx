@@ -236,7 +236,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 } else if (alert.type === 'machine-on') {
                   alertType = "Machine ON Alert";
                 } else {
-                  return null;
+                  console.log("Hi");
                 }
                 
                 if (filterType !== "All Activity" && filterType !== alertType) {
