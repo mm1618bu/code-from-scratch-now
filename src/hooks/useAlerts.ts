@@ -28,6 +28,7 @@ export const useAlerts = () => {
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
   const [currentAlerts, setCurrentAlerts] = useState<AlertItem[]>([]);
+  const [offlineMachines, setOfflineMachines] = useState<Record<string, { timestamp: string }>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,6 +41,42 @@ export const useAlerts = () => {
       setShowAlerts(true);
     }
   }, [currentAlerts.length]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentTime = new Date();
+      
+      Object.entries(offlineMachines).forEach(([machineId, { timestamp }]) => {
+        const offlineTime = new Date(timestamp);
+        const minutesOffline = (currentTime.getTime() - offlineTime.getTime()) / (1000 * 60);
+        
+        if (minutesOffline >= 2) {
+          const downtimeAlert: AlertItem = {
+            machineId,
+            timestamp: currentTime.toISOString(),
+            type: 'downtime',
+            offTimestamp: timestamp,
+            downtimeDuration: Math.floor(minutesOffline)
+          };
+          
+          setCurrentAlerts(prev => {
+            const exists = prev.some(alert => 
+              alert.type === 'downtime' && 
+              alert.machineId === machineId && 
+              alert.offTimestamp === timestamp
+            );
+            
+            if (!exists) {
+              return [...prev, downtimeAlert];
+            }
+            return prev;
+          });
+        }
+      });
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [offlineMachines]);
 
   const checkForAlerts = (data: LiveDataItem[]) => {
     console.log(`Checking ${data.length} items for alerts`);
@@ -87,9 +124,16 @@ export const useAlerts = () => {
       totalCurrent: newData.total_current
     });
     
-    // Check if machine has turned on (total current >= 1.0)
     if (newData.total_current >= 1.0) {
       console.log(`Machine ${newData.machineId} is now ON with current: ${newData.total_current}A`);
+      
+      if (offlineMachines[newData.machineId]) {
+        setOfflineMachines(prev => {
+          const { [newData.machineId]: _, ...rest } = prev;
+          return rest;
+        });
+      }
+      
       const newAlert = {
         machineId: newData.machineId,
         value: newData.total_current,
@@ -98,18 +142,19 @@ export const useAlerts = () => {
       };
       
       setCurrentAlerts(prev => {
-        const key = `machine-on-${newAlert.machineId}`;
         const filtered = prev.filter(a => !(a.type === 'machine-on' && a.machineId === newAlert.machineId));
-        const updatedAlerts = [...filtered, newAlert];
-        console.log('Updated machine-on alerts:', updatedAlerts.length);
-        return updatedAlerts;
+        return [...filtered, newAlert];
       });
       
       setAlertCount(prev => prev + 1);
       setShowAlerts(true);
+    } else if (newData.total_current < 1.0) {
+      setOfflineMachines(prev => ({
+        ...prev,
+        [newData.machineId]: { timestamp: new Date(newData.created_at).toISOString() }
+      }));
     }
 
-    // Process high current alerts
     if (newData.total_current >= 15.0) {
       console.log(`High current detected for ${newData.machineId}: ${newData.total_current}A`);
       const newAlert = {
@@ -120,11 +165,8 @@ export const useAlerts = () => {
       };
       
       setCurrentAlerts(prev => {
-        const key = `high-current-${newAlert.machineId}`;
         const filtered = prev.filter(a => !(a.type === 'high-current' && a.machineId === newAlert.machineId));
-        const updatedAlerts = [...filtered, newAlert];
-        console.log('Updated high current alerts:', updatedAlerts.length);
-        return updatedAlerts;
+        return [...filtered, newAlert];
       });
       
       setAlertCount(prev => prev + 1);
@@ -137,7 +179,6 @@ export const useAlerts = () => {
       });
     }
 
-    // Process state change alerts
     if (newData.state) {
       console.log(`Processing state change for ${newData.machineId}: ${newData.state}`);
       const newAlert = {

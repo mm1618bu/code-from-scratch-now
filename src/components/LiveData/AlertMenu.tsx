@@ -297,13 +297,15 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           ? `Machine ${alert.machineId} is ON`
                           : alert.type === 'high-current' 
                           ? `High Current on ${alert.machineId}` 
+                          : alert.type === 'downtime'
+                          ? `Machine ${alert.machineId} Downtime Alert`
                           : alert.type === 'offline-status'
                           ? `${alert.machineId} Still Offline`
                           : alert.type === 'state-change'
                           ? `Machine ${alert.machineId} State Changed`
                           : alert.type === 'state-update-log'
                           ? `Machine ${alert.machineId} State Update`
-                          : `${alert.machineId} Downtime Alert`}
+                          : `${alert.machineId} Alert`}
                       </div>
                       
                       {alert.type === 'machine-on' && (
@@ -315,6 +317,12 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       {alert.type === 'high-current' && (
                         <div className="text-sm text-red-600">
                           Current: {alert.value?.toFixed(2)} A
+                        </div>
+                      )}
+                      
+                      {alert.type === 'downtime' && (
+                        <div className="text-sm text-blue-600">
+                          Offline for: {formatDuration(alert.downtimeDuration || 0)}
                         </div>
                       )}
                       
