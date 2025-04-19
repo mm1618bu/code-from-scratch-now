@@ -215,9 +215,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 <DropdownMenuItem onClick={() => setFilterType("Offline Status")}>
                   Offline Status ({offlineStatusCount})
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("State Change")}>
-                  State Change ({stateChangeAlertCount})
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("State Update Log")}>
                   State Update Log ({stateUpdateLogCount})
                 </DropdownMenuItem>
