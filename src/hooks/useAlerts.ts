@@ -124,6 +124,9 @@ export const useAlerts = () => {
       totalCurrent: newData.total_current
     });
     
+    // Prevent creating blank records
+    if (!newData.machineId || !newData.created_at || !newData.state) return;
+
     if (newData.total_current >= 1.0) {
       console.log(`Machine ${newData.machineId} is now ON with current: ${newData.total_current}A`);
       
