@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Bell, BellRing, ChevronLeft, AlertCircle, Check, X, PowerOff, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,8 @@ export interface AlertItem {
     ctAvg: number;
     totalCurrent: number;
   };
+  previousState?: string;
+  newState?: string;
 }
 
 interface MachineState {

@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
-import { AlertItem } from '@/components/LiveData/AlertMenu';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
 import { LiveDataItem } from '@/types/liveData';
 import { MachineDowntimeNotification } from '@/lib/notification';
+import { useToast } from '@/hooks/use-toast';
 
-// Extend AlertItem to support previousState and newState for state-change alerts
+// Define AlertItem interface
 export interface AlertItem {
   machineId: string;
   value?: number;
@@ -21,8 +22,6 @@ export interface AlertItem {
     ctAvg: number;
     totalCurrent: number;
   };
-  
-  // Add previousState and newState specifically for 'state-change' alerts
   previousState?: string;
   newState?: string;
 }
@@ -160,7 +159,7 @@ export const useAlerts = () => {
       previousState,
       newState,
       timestamp: new Date(timestamp).toLocaleString(),
-      type: 'state-change' as any
+      type: 'state-change' as const
     };
     
     setCurrentAlerts(prev => {
