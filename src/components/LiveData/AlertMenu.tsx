@@ -86,15 +86,22 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         totalCurrent
       };
 
-      newAlerts.push({
-        machineId: machineId,
-        timestamp: new Date().toISOString(),
-        type: 'state-update-log',
-        value: totalCurrent,
-        isStatusUpdate: true,
-        stateValues: ctValues
-      });
+      // Only add state-update-log alert if it doesn't already exist for the same machineId
+      const existingStateAlert = generatedAlerts.find(
+        (alert) => alert.machineId === machine.machineId && alert.type === 'state-update-log'
+      );
+      if (!existingStateAlert) {
+        newAlerts.push({
+          machineId: machineId,
+          timestamp: new Date().toISOString(),
+          type: 'state-update-log',
+          value: totalCurrent,
+          isStatusUpdate: true,
+          stateValues: ctValues
+        });
+      }
 
+      // Check if the current totalCurrent exceeds the threshold
       if (machine.totalCurrent >= 15.0) {
         const existingAlert = generatedAlerts.find(
           (alert) => alert.machineId === machine.machineId && alert.type === 'high-current'
