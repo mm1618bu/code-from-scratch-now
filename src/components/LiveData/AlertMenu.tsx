@@ -204,9 +204,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 <DropdownMenuItem onClick={() => setFilterType("Offline Status")}>
                   Offline Status ({offlineStatusCount})
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("State Update Log")}>
-                  State Update Log ({stateUpdateLogCount})
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("Machine ON Alert")}>
                   Machine ON Alert ({machineOnAlertCount})
                 </DropdownMenuItem>
@@ -228,8 +225,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   alertType = "Downtime Alert";
                 } else if (alert.type === 'offline-status') {
                   alertType = "Offline Status";
-                }  else if (alert.type === 'state-update-log') {
-                  alertType = "State Update Log";
                 } else if (alert.type === 'machine-on') {
                   alertType = "Machine ON Alert";
                 } else {
