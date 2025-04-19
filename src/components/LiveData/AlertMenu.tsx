@@ -10,7 +10,7 @@ export interface AlertItem {
   machineId: string;
   value?: number;
   timestamp: string;
-  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change' | 'state-update-log' | 'machine-on';
+  type: 'high-current' | 'downtime' | 'offline-status' | 'state-update-log' | 'machine-on';
   downtimeDuration?: number;
   offTimestamp?: string;
   onTimestamp?: string;
@@ -95,12 +95,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         stateValues: ctValues,
       });
 
-      if (machine.state !== currentState) {
-        newAlerts.push({
-          machineId: machine.machineId,
-          timestamp: new Date().toISOString(),
-          type: "state-change",
-        });
       }
 
       if (machine.totalCurrent >= 15.0) {
@@ -130,7 +124,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   const downtimeAlertCount = allAlerts.filter(a => a.type === 'downtime').length;
   const offlineStatusCount = allAlerts.filter(a => a.type === 'offline-status').length;
   const highCurrentAlertCount = allAlerts.filter(a => a.type === 'high-current').length;
-  const stateChangeAlertCount = allAlerts.filter(a => a.type === 'state-change').length;
   const stateUpdateLogCount = allAlerts.filter(a => a.type === 'state-update-log').length;
   const machineOnAlertCount = allAlerts.filter(a => a.type === 'machine-on').length;
 
@@ -239,9 +232,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   alertType = "Downtime Alert";
                 } else if (alert.type === 'offline-status') {
                   alertType = "Offline Status";
-                } else if (alert.type === 'state-change') {
-                  alertType = "State Change";
-                } else if (alert.type === 'state-update-log') {
+                }  else if (alert.type === 'state-update-log') {
                   alertType = "State Update Log";
                 } else if (alert.type === 'machine-on') {
                   alertType = "Machine ON Alert";
@@ -262,7 +253,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       alert.type === 'high-current' ? "bg-red-50" : "",
                       alert.type === 'downtime' ? "bg-blue-50" : "",
                       alert.type === 'offline-status' ? "bg-orange-50" : "",
-                      alert.type === 'state-change' ? "bg-green-50" : "",
                       alert.type === 'state-update-log' ? "bg-yellow-50" : "",
                       alert.type === 'machine-on' ? "bg-emerald-50" : ""
                     )}
@@ -271,8 +261,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       <div className="flex items-center gap-2">
                         {alert.type === 'high-current' ? (
                           <AlertCircle className="h-4 w-4 text-red-500" />
-                        ) : alert.type === 'state-change' ? (
-                          <Check className="h-4 w-4 text-green-500" />
                         ) : alert.type === 'state-update-log' ? (
                           <Clock className="h-4 w-4 text-yellow-500" />
                         ) : alert.type === 'machine-on' ? (
@@ -298,8 +286,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           ? `Machine ${alert.machineId} Downtime Alert`
                           : alert.type === 'offline-status'
                           ? `${alert.machineId} Still Offline`
-                          : alert.type === 'state-change'
-                          ? `Machine ${alert.machineId} State Changed`
                           : alert.type === 'state-update-log'
                           ? `Machine ${alert.machineId} State Update`
                           : `${alert.machineId} Alert`}
