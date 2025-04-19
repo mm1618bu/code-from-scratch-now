@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Bell, BellRing, ChevronLeft, AlertCircle, Check, X, PowerOff, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,7 +54,12 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true 
+    });
   };
 
   const formatDuration = (minutes: number) => {
@@ -68,42 +72,37 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
     }
   };
 
-  // Function to monitor machine states and generate alerts
   useEffect(() => {
     const newAlerts: AlertItem[] = [];
 
     machineStates.forEach((machine) => {
       const { machineId, state: currentState, totalCurrent } = machine;
 
-      // Simulate CT values (if available in your data structure)
       const ctValues = {
-        ct1: totalCurrent * 0.3, // Example calculation
+        ct1: totalCurrent * 0.3,
         ct2: totalCurrent * 0.3,
         ct3: totalCurrent * 0.4,
         ctAvg: totalCurrent / 3,
         totalCurrent,
       };
 
-      // Create a new alert for state update with the CT values
       newAlerts.push({
         machineId: machineId,
         timestamp: new Date().toISOString(),
-        type: 'state-update-log', // New type for state update log
-        value: totalCurrent, // Optional: you can include CT value here as well
+        type: 'state-update-log',
+        value: totalCurrent,
         isStatusUpdate: true,
-        stateValues: ctValues, // Store the CT values for display
+        stateValues: ctValues,
       });
 
-      // Condition: Machine state changes from "off" to any other state
       if (machine.state !== currentState) {
         newAlerts.push({
           machineId: machine.machineId,
           timestamp: new Date().toISOString(),
-          type: "state-change", // Create state change alert
+          type: "state-change",
         });
       }
 
-      // Condition: Total current is 15.0 or above
       if (machine.totalCurrent >= 15.0) {
         const existingAlert = generatedAlerts.find(
           (alert) =>
@@ -121,23 +120,19 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
       }
     });
 
-    // Update the generated alerts
     if (newAlerts.length > 0) {
       setGeneratedAlerts((prevAlerts) => [...prevAlerts, ...newAlerts]);
     }
   }, [machineStates, generatedAlerts]);
 
-  // Combine current alerts and dynamically generated alerts
   const allAlerts = [...currentAlerts, ...generatedAlerts];
 
-  // Count alerts by type
   const downtimeAlertCount = allAlerts.filter(a => a.type === 'downtime').length;
   const offlineStatusCount = allAlerts.filter(a => a.type === 'offline-status').length;
   const highCurrentAlertCount = allAlerts.filter(a => a.type === 'high-current').length;
   const stateChangeAlertCount = allAlerts.filter(a => a.type === 'state-change').length;
-  const stateUpdateLogCount = allAlerts.filter(a => a.type === 'state-update-log').length; // Add count for state update logs
+  const stateUpdateLogCount = allAlerts.filter(a => a.type === 'state-update-log').length;
 
-  // Sort alerts to show newest first
   const sortedAlerts = [...allAlerts].sort((a, b) => {
     const dateA = a.onTimestamp ? new Date(a.onTimestamp).getTime() : new Date(a.timestamp).getTime();
     const dateB = b.onTimestamp ? new Date(b.onTimestamp).getTime() : new Date(b.timestamp).getTime();
@@ -223,7 +218,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                   State Change ({stateChangeAlertCount})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("State Update Log")}>
-                  State Update Log ({stateUpdateLogCount}) {/* Add count for state update logs */}
+                  State Update Log ({stateUpdateLogCount})
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -244,14 +239,13 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 } else if (alert.type === 'offline-status') {
                   alertType = "Offline Status";
                 } else if (alert.type === 'state-change') {
-                  alertType = "State Change"; // State change alert
+                  alertType = "State Change";
                 } else if (alert.type === 'state-update-log') {
-                  alertType = "State Update Log"; // New type for state update
+                  alertType = "State Update Log";
                 } else {
                   alertType = "Node Alert";
                 }
                 
-                // Skip if filtered and not matching the selected filter
                 if (filterType !== "All Activity" && filterType !== alertType) {
                   return null;
                 }
@@ -264,8 +258,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       index % 2 === 0 ? "bg-white" : "bg-zinc-50",
                       alert.type === 'downtime' ? "bg-blue-50" : "",
                       alert.type === 'offline-status' ? "bg-orange-50" : "",
-                      alert.type === 'state-change' ? "bg-green-50" : "", // Highlight state-change alerts
-                      alert.type === 'state-update-log' ? "bg-yellow-50" : "" // Highlight state update logs
+                      alert.type === 'state-change' ? "bg-green-50" : "",
+                      alert.type === 'state-update-log' ? "bg-yellow-50" : ""
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -320,11 +314,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           </div>
                         </div>
                       )}
-
-                      {/* Existing condition checks for high-current, downtime, etc. */}
                     </div>
-
-                    {/* Action buttons */}
                   </div>
                 );
               }).filter(Boolean)
