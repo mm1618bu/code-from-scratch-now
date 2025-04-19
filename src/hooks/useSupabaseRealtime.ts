@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LiveDataItem } from '@/types/liveData';
@@ -65,30 +64,9 @@ export const useSupabaseRealtime = (
           CT2: newData.CT2,
           CT3: newData.CT3
         });
-        
-        if (newData.total_current >= 15.0) {
-          console.log(`High current detected (${newData.total_current}A) for ${newData.machineId}`);
-          onNewAlert(newData);
-        }
-        
-        if ('state' in newData && 
-            payload.old && 
-            typeof payload.old === 'object' && 
-            'state' in payload.old && 
-            payload.old.state !== newData.state) {
-          
-          console.log(`State change detected for ${newData.machineId}: ${payload.old.state} -> ${newData.state}`);
-          
-          notifyMachineStateChange({
-            machineId: newData.machineId,
-            previousState: payload.old.state as string,
-            newState: newData.state as string,
-            timestamp: new Date(newData.created_at).toISOString(),
-            totalCurrent: newData.total_current
-          });
-          
-          onNewAlert(newData);
-        }
+
+        // Always call onNewAlert for state changes and high current
+        onNewAlert(newData);
         
         if (payload.old && typeof payload.old === 'object') {
           const prevData = payload.old as Record<string, any>;

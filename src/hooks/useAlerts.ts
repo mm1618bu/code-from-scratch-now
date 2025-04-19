@@ -3,7 +3,6 @@ import { AlertItem } from '@/components/LiveData/AlertMenu';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
 import { LiveDataItem } from '@/types/liveData';
 import { MachineDowntimeNotification } from '@/lib/notification';
-import { useToast } from '@/hooks/use-toast';
 
 // Extend AlertItem to support previousState and newState for state-change alerts
 export interface AlertItem {
@@ -91,6 +90,7 @@ export const useAlerts = () => {
       totalCurrent: newData.total_current
     });
     
+    // Process high current alerts
     if (newData.total_current >= 15.0) {
       console.log(`High current detected for ${newData.machineId}: ${newData.total_current}A`);
       const newAlert = {
@@ -116,6 +116,39 @@ export const useAlerts = () => {
         totalCurrent: newData.total_current,
         timestamp: new Date(newData.created_at).toISOString()
       });
+    }
+
+    // Process state change alerts
+    if (newData.state) {
+      console.log(`Processing state change for ${newData.machineId}: ${newData.state}`);
+      const newAlert = {
+        machineId: newData.machineId,
+        timestamp: new Date(newData.created_at).toLocaleString(),
+        type: 'state-change' as const,
+        stateValues: {
+          ct1: newData.CT1,
+          ct2: newData.CT2,
+          ct3: newData.CT3,
+          ctAvg: (newData.CT1 + newData.CT2 + newData.CT3) / 3,
+          totalCurrent: newData.total_current
+        },
+        newState: newData.state
+      };
+      
+      setCurrentAlerts(prev => {
+        const key = `state-change-${newAlert.machineId}-${newAlert.timestamp}`;
+        const filtered = prev.filter(a => 
+          !(a.type === 'state-change' && 
+            a.machineId === newAlert.machineId && 
+            a.timestamp === newAlert.timestamp)
+        );
+        const updatedAlerts = [...filtered, newAlert];
+        console.log('Updated state change alerts:', updatedAlerts.length);
+        return updatedAlerts;
+      });
+      
+      setAlertCount(prev => prev + 1);
+      setShowAlerts(true);
     }
   };
 
