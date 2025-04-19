@@ -28,6 +28,14 @@ export interface AlertDetails {
   newState?: string;
 }
 
+const formatTimestamp = (timestamp: string) => {
+  try {
+    return new Date(timestamp).toLocaleString();
+  } catch {
+    return new Date().toLocaleString(); // Fallback to current time
+  }
+};
+
 export const useAlerts = () => {
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
@@ -46,43 +54,15 @@ export const useAlerts = () => {
   }, [currentAlerts.length]);
 
   const checkForAlerts = (data: LiveDataItem[]) => {
-    console.log(`Checking ${data.length} items for alerts`);
-    const highCurrentItems = data.filter(item => item.total_current >= 15.0);
-    
-    if (highCurrentItems.length > 0) {
-      console.log(`Found ${highCurrentItems.length} high current items`);
-      const newAlerts = highCurrentItems.map(item => ({
-        machineId: item.machineId,
-        value: item.total_current,
-        timestamp: new Date(item.created_at).toLocaleString(),
-        type: 'high-current' as const
-      }));
-      
-      setCurrentAlerts(prev => {
-        const combined = [...prev, ...newAlerts];
-        const unique = combined.reduce((acc, curr) => {
-          const key = `${curr.type}-${curr.machineId}`;
-          acc[key] = curr;
-          return acc;
-        }, {} as Record<string, AlertItem>);
-        
-        return Object.values(unique);
-      });
-      
-      setAlertCount(prev => prev + highCurrentItems.length);
-      
-      if (newAlerts.length > 0) {
-        setShowAlerts(true);
+    data.forEach((item) => {
+      if (item.total_current >= 15.0) {
+        processAlert(item);
       }
-      
-      highCurrentItems.forEach(item => {
-        notifyTotalCurrentThresholdAlert({
-          machineId: item.machineId,
-          totalCurrent: item.total_current,
-          timestamp: new Date(item.created_at).toISOString()
-        });
-      });
-    }
+
+      if (item.previous_state && item.state && item.previous_state !== item.state) {
+        addStateChangeAlert(item.machineId, item.previous_state, item.state, item.created_at);
+      }
+    });
   };
 
   const processAlert = (newData: LiveDataItem) => {
@@ -96,7 +76,7 @@ export const useAlerts = () => {
       const newAlert = {
         machineId: newData.machineId,
         value: newData.total_current,
-        timestamp: new Date(newData.created_at).toLocaleString(),
+        timestamp: formatTimestamp(newData.created_at),
         type: 'high-current' as const
       };
       
@@ -120,40 +100,36 @@ export const useAlerts = () => {
   };
 
   const addStateChangeAlert = (machineId: string, previousState: string, newState: string, timestamp: string) => {
-    // Exclude alerts when the new state is "off"
-    if (newState === "off") {
-      console.log(`Skipping state change alert for ${machineId}: newState is "off"`);
+    if (newState === "off" || previousState === newState) {
+      console.log(`Skipping state change alert for ${machineId}: newState is "off" or no state change detected`);
       return;
     }
 
-    console.log(`Adding state change alert for ${machineId}: ${previousState} → ${newState}`);
-    
     const newAlert: AlertDetails = {
       machineId,
       previousState,
       newState,
-      timestamp: new Date(timestamp).toLocaleString(),
+      timestamp: formatTimestamp(timestamp),
       type: 'state-change' as const,
     };
-    
-    setCurrentAlerts(prev => {
-      const exists = prev.some(a => 
-        a.type === 'state-change' && 
-        a.machineId === newAlert.machineId &&
-        a.previousState === newAlert.previousState &&
-        a.newState === newAlert.newState
+
+    setCurrentAlerts((prev) => {
+      const exists = prev.some(
+        (a) =>
+          a.type === 'state-change' &&
+          a.machineId === newAlert.machineId &&
+          a.previousState === newAlert.previousState &&
+          a.newState === newAlert.newState
       );
-      
+
       if (exists) {
         return prev;
       }
-      
-      const updatedAlerts = [...prev, newAlert];
-      console.log('Updated state change alerts:', updatedAlerts.length);
-      return updatedAlerts;
+
+      return [...prev, newAlert];
     });
-    
-    setAlertCount(prev => prev + 1);
+
+    setAlertCount((prev) => prev + 1);
     setShowAlerts(true);
   };
 
@@ -165,7 +141,7 @@ export const useAlerts = () => {
     
     const newAlert: AlertItem = {
       machineId: downtimeInfo.machineId,
-      timestamp: new Date(isStatusUpdate ? downtimeInfo.offTimestamp : downtimeInfo.onTimestamp).toLocaleString(),
+      timestamp: formatTimestamp(isStatusUpdate ? downtimeInfo.offTimestamp : downtimeInfo.onTimestamp),
       type: alertType as any,
       downtimeDuration: downtimeInfo.downtimeDuration,
       offTimestamp: downtimeInfo.offTimestamp,
@@ -203,8 +179,12 @@ export const useAlerts = () => {
     setShowAlerts(true);
   };
 
-  const clearAlerts = () => {
-    setCurrentAlerts([]);
+  const clearAlerts = (type?: string) => {
+    if (type) {
+      setCurrentAlerts((prev) => prev.filter((alert) => alert.type !== type));
+    } else {
+      setCurrentAlerts([]);
+    }
     setAlertCount(0);
     setShowAlerts(false);
   };

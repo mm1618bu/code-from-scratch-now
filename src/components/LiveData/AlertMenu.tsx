@@ -22,6 +22,8 @@ export interface AlertItem {
     ctAvg: number;
     totalCurrent: number;
   };
+  previousState?: string;
+  newState?: string;
 }
 
 interface MachineState {
@@ -68,49 +70,36 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
   // Function to monitor machine states and generate alerts
   useEffect(() => {
     const newAlerts: AlertItem[] = [];
+    const updatedPreviousStates: Record<string, string> = {};
 
     machineStates.forEach((machine) => {
       const { machineId, state: currentState, totalCurrent } = machine;
-
-      // Simulate CT values (if available in your data structure)
-      const ctValues = {
-        ct1: totalCurrent * 0.3, // Example calculation
-        ct2: totalCurrent * 0.3,
-        ct3: totalCurrent * 0.4,
-        ctAvg: totalCurrent / 3,
-        totalCurrent,
-      };
-
-      // Create a new alert for state update with the CT values
-      newAlerts.push({
-        machineId: machineId,
-        timestamp: new Date().toISOString(),
-        type: 'state-update-log', // New type for state update log
-        value: totalCurrent, // Optional: you can include CT value here as well
-        isStatusUpdate: true,
-        stateValues: ctValues, // Store the CT values for display
-      });
+      const previousState = updatedPreviousStates[machineId] || "off";
 
       // Condition: Machine state changes from "off" to any other state
-      if (machine.state !== currentState) {
+      if (previousState === "off" && currentState !== "off") {
         newAlerts.push({
-          machineId: machine.machineId,
+          machineId: machineId,
           timestamp: new Date().toISOString(),
-          type: "state-change", // Create state change alert
+          type: "state-change",
+          previousState,
+          newState: currentState,
         });
       }
 
+      // Update the previous state
+      updatedPreviousStates[machineId] = currentState;
+
       // Condition: Total current is 15.0 or above
-      if (machine.totalCurrent >= 15.0) {
+      if (totalCurrent >= 15.0) {
         const existingAlert = generatedAlerts.find(
           (alert) =>
-            alert.machineId === machine.machineId &&
-            alert.type === "high-current"
+            alert.machineId === machineId && alert.type === "high-current"
         );
         if (!existingAlert) {
           newAlerts.push({
-            machineId: machine.machineId,
-            value: machine.totalCurrent,
+            machineId: machineId,
+            value: totalCurrent,
             timestamp: new Date().toISOString(),
             type: "high-current",
           });
@@ -234,44 +223,44 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
             ) : (
               sortedAlerts.map((alert, index) => {
                 let alertType;
-                if (alert.type === 'high-current') {
+                if (alert.type === "high-current") {
                   alertType = "High Current Alert";
-                } else if (alert.type === 'downtime') {
+                } else if (alert.type === "downtime") {
                   alertType = "Downtime Alert";
-                } else if (alert.type === 'offline-status') {
+                } else if (alert.type === "offline-status") {
                   alertType = "Offline Status";
-                } else if (alert.type === 'state-change') {
-                  alertType = "State Change"; // State change alert
-                } else if (alert.type === 'state-update-log') {
-                  alertType = "State Update Log"; // New type for state update
+                } else if (alert.type === "state-change") {
+                  alertType = "State Change";
+                } else if (alert.type === "state-update-log") {
+                  alertType = "State Update Log";
                 } else {
                   alertType = "Node Alert";
                 }
-                
+
                 // Skip if filtered and not matching the selected filter
                 if (filterType !== "All Activity" && filterType !== alertType) {
                   return null;
                 }
-                
+
                 return (
-                  <div 
+                  <div
                     key={`${alert.machineId}-${index}-${alert.type}-${alert.timestamp}`}
                     className={cn(
-                      "p-4 border-b border-zinc-200", 
+                      "p-4 border-b border-zinc-200",
                       index % 2 === 0 ? "bg-white" : "bg-zinc-50",
-                      alert.type === 'downtime' ? "bg-blue-50" : "",
-                      alert.type === 'offline-status' ? "bg-orange-50" : "",
-                      alert.type === 'state-change' ? "bg-green-50" : "", // Highlight state-change alerts
-                      alert.type === 'state-update-log' ? "bg-yellow-50" : "" // Highlight state update logs
+                      alert.type === "downtime" ? "bg-blue-50" : "",
+                      alert.type === "offline-status" ? "bg-orange-50" : "",
+                      alert.type === "state-change" ? "bg-green-50" : "",
+                      alert.type === "state-update-log" ? "bg-yellow-50" : ""
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        {alert.type === 'high-current' ? (
+                        {alert.type === "high-current" ? (
                           <AlertCircle className="h-4 w-4 text-red-500" />
-                        ) : alert.type === 'state-change' ? (
+                        ) : alert.type === "state-change" ? (
                           <Check className="h-4 w-4 text-green-500" />
-                        ) : alert.type === 'state-update-log' ? (
+                        ) : alert.type === "state-update-log" ? (
                           <Clock className="h-4 w-4 text-yellow-500" />
                         ) : (
                           <PowerOff className="h-4 w-4 text-blue-500" />
@@ -279,49 +268,24 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                         <span className="text-xs text-zinc-500">{alertType}</span>
                       </div>
                       <span className="text-xs text-zinc-400">
-                        {new Date(alert.timestamp).toLocaleDateString()} · 
+                        {new Date(alert.timestamp).toLocaleDateString()} ·{" "}
                         {formatTimestamp(alert.timestamp)}
                       </span>
                     </div>
-                    
+
                     <div className="mb-2">
                       <div className="font-medium text-zinc-800">
-                        {alert.type === 'high-current' 
-                          ? `High Current on ${alert.machineId}` 
-                          : alert.type === 'offline-status'
+                        {alert.type === "high-current"
+                          ? `High Current on ${alert.machineId}`
+                          : alert.type === "offline-status"
                           ? `${alert.machineId} Still Offline`
-                          : alert.type === 'state-change'
-                          ? `Machine ${alert.machineId} State Changed`
-                          : alert.type === 'state-update-log'
+                          : alert.type === "state-change"
+                          ? `Machine ${alert.machineId} State Changed from ${alert.previousState} to ${alert.newState}`
+                          : alert.type === "state-update-log"
                           ? `Machine ${alert.machineId} State Update`
                           : `${alert.machineId} Downtime Alert`}
                       </div>
-                      
-                      {alert.type === 'state-update-log' && (
-                        <div className="text-sm text-zinc-600">
-                          Machine state updated with new CT values:
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT1: {alert.stateValues?.ct1?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT2: {alert.stateValues?.ct2?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT3: {alert.stateValues?.ct3?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            CT Average: {alert.stateValues?.ctAvg?.toFixed(2)} A
-                          </div>
-                          <div className="text-xs text-zinc-500 mt-1">
-                            Total Current: {alert.stateValues?.totalCurrent?.toFixed(2)} A
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Existing condition checks for high-current, downtime, etc. */}
                     </div>
-
-                    {/* Action buttons */}
                   </div>
                 );
               }).filter(Boolean)
