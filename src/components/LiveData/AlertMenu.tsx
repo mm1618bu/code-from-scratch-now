@@ -240,7 +240,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                     key={`${alert.machineId}-${index}-${alert.type}-${alert.timestamp}`}
                     className={cn(
                       'p-4 border-b border-zinc-200',
-                      index % 2 === 0 ? 'bg-white' : 'bg-zinc-50',
                       alert.type === 'high-current' ? 'bg-red-50' : '',
                       alert.type === 'downtime' ? 'bg-blue-50' : '',
                       alert.type === 'offline-status' ? 'bg-orange-50' : '',
