@@ -5,8 +5,8 @@ import { LiveDataItem } from '@/types/liveData';
 import { MachineDowntimeNotification } from '@/lib/notification';
 import { useToast } from '@/hooks/use-toast';
 
-// Extend AlertItem to support previousState and newState for state-change alerts
-export interface AlertItem {
+// Extend AlertDetails to support previousState and newState for state-change alerts
+export interface AlertDetails {
   machineId: string;
   value?: number;
   timestamp: string;
@@ -31,7 +31,7 @@ export interface AlertItem {
 export const useAlerts = () => {
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
-  const [currentAlerts, setCurrentAlerts] = useState<AlertItem[]>([]);
+  const [currentAlerts, setCurrentAlerts] = useState<AlertDetails[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -122,7 +122,7 @@ export const useAlerts = () => {
   const addStateChangeAlert = (machineId: string, previousState: string, newState: string, timestamp: string) => {
     console.log(`Adding state change alert for ${machineId}: ${previousState} → ${newState}`);
     
-    const newAlert: AlertItem = {
+    const newAlert: AlertDetails = {
       machineId,
       previousState,
       newState,
