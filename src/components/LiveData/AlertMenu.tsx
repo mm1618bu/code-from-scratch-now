@@ -91,29 +91,16 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         stateValues: ctValues, // Store the CT values for display
       });
 
-      // Log the state update
-      console.log(
-        `Updating state for ${machineId} from ${currentState} to ${machine.state} with CT values:`,
-        { CT1: ctValues.ct1, CT2: ctValues.ct2, CT3: ctValues.ct3, CT_Avg: ctValues.ctAvg, total: ctValues.totalCurrent }
-      );
-
-      // Condition 1: Machine state changes from "off" to any other state
-      if (machine.state !== "off") {
-        const existingAlert = generatedAlerts.find(
-          (alert) =>
-            alert.machineId === machine.machineId &&
-            alert.type === "state-change"
-        );
-        if (!existingAlert) {
-          newAlerts.push({
-            machineId: machine.machineId,
-            timestamp: new Date().toISOString(),
-            type: "state-change",
-          });
-        }
+      // Condition: Machine state changes from "off" to any other state
+      if (machine.state !== currentState) {
+        newAlerts.push({
+          machineId: machine.machineId,
+          timestamp: new Date().toISOString(),
+          type: "state-change", // Create state change alert
+        });
       }
 
-      // Condition 2: Total current is 15.0 or above
+      // Condition: Total current is 15.0 or above
       if (machine.totalCurrent >= 15.0) {
         const existingAlert = generatedAlerts.find(
           (alert) =>
@@ -254,7 +241,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 } else if (alert.type === 'offline-status') {
                   alertType = "Offline Status";
                 } else if (alert.type === 'state-change') {
-                  alertType = "State Change";
+                  alertType = "State Change"; // State change alert
                 } else if (alert.type === 'state-update-log') {
                   alertType = "State Update Log"; // New type for state update
                 } else {
@@ -274,8 +261,8 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                       index % 2 === 0 ? "bg-white" : "bg-zinc-50",
                       alert.type === 'downtime' ? "bg-blue-50" : "",
                       alert.type === 'offline-status' ? "bg-orange-50" : "",
-                      alert.type === 'state-change' ? "bg-green-50" : "",
-                      alert.type === 'state-update-log' ? "bg-yellow-50" : "" // Highlight state update logs with yellow
+                      alert.type === 'state-change' ? "bg-green-50" : "", // Highlight state-change alerts
+                      alert.type === 'state-update-log' ? "bg-yellow-50" : "" // Highlight state update logs
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -285,7 +272,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                         ) : alert.type === 'state-change' ? (
                           <Check className="h-4 w-4 text-green-500" />
                         ) : alert.type === 'state-update-log' ? (
-                          <Clock className="h-4 w-4 text-yellow-500" /> // New icon for state updates
+                          <Clock className="h-4 w-4 text-yellow-500" />
                         ) : (
                           <PowerOff className="h-4 w-4 text-blue-500" />
                         )}
