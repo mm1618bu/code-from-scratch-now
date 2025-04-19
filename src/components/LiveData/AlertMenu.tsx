@@ -63,6 +63,23 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
     const newAlerts: AlertItem[] = [];
 
     machineStates.forEach((machine) => {
+      const { machineId, state: currentState, totalCurrent } = machine;
+
+      // Simulate CT values (if available in your data structure)
+      const ctValues = {
+        ct1: totalCurrent * 0.3, // Example calculation
+        ct2: totalCurrent * 0.3,
+        ct3: totalCurrent * 0.4,
+        ctAvg: totalCurrent / 3,
+        totalCurrent,
+      };
+
+      // Log the state update
+      console.log(
+        `Updating state for ${machineId} from ${currentState} to ${machine.state} with CT values:`,
+        { CT1: ctValues.ct1, CT2: ctValues.ct2, CT3: ctValues.ct3, CT_Avg: ctValues.ctAvg, total: ctValues.totalCurrent }
+      );
+
       // Condition 1: Machine state changes from "off" to any other state
       if (machine.state !== "off") {
         const existingAlert = generatedAlerts.find(
