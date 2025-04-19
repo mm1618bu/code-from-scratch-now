@@ -95,7 +95,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         stateValues: ctValues,
       });
 
-      }
 
       if (machine.totalCurrent >= 15.0) {
         const existingAlert = generatedAlerts.find(
