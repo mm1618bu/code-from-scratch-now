@@ -256,9 +256,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           <Clock className="h-4 w-4 text-yellow-500" />
                         ) : alert.type === 'machine-on' ? (
                           <PowerOff className="h-4 w-4 text-emerald-500" />
-                        ) : (
-                          <PowerOff className="h-4 w-4 text-blue-500" />
-                        )}
+                        ) : }
                         <span className="text-xs text-zinc-500">{alertType}</span>
                       </div>
                       <span className="text-xs text-zinc-400">
