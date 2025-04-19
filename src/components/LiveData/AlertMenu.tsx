@@ -195,9 +195,6 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[200px] bg-white">
-                <DropdownMenuItem onClick={() => setFilterType("All Activity")}>
-                  All Activity ({allAlerts.length})
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("High Current Alert")}>
                   High Current Alert ({highCurrentAlertCount})
                 </DropdownMenuItem>
