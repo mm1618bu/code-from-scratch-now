@@ -276,7 +276,7 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
                           ? `${alert.machineId} Still Offline`
                           : alert.type === 'state-update-log'
                           ? `Machine ${alert.machineId} State Update`
-                          : ''}
+                        }
                       </div>
 
                       {alert.type === 'machine-on' && (
