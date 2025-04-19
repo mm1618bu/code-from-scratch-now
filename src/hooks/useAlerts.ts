@@ -120,6 +120,12 @@ export const useAlerts = () => {
   };
 
   const addStateChangeAlert = (machineId: string, previousState: string, newState: string, timestamp: string) => {
+    // Exclude alerts when the new state is "off"
+    if (newState === "off") {
+      console.log(`Skipping state change alert for ${machineId}: newState is "off"`);
+      return;
+    }
+
     console.log(`Adding state change alert for ${machineId}: ${previousState} → ${newState}`);
     
     const newAlert: AlertDetails = {
@@ -127,7 +133,7 @@ export const useAlerts = () => {
       previousState,
       newState,
       timestamp: new Date(timestamp).toLocaleString(),
-      type: 'state-change' as any
+      type: 'state-change' as const,
     };
     
     setCurrentAlerts(prev => {
