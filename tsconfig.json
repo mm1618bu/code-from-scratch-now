@@ -4,15 +4,20 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
-{
   "compilerOptions": {
-    "jsx": "react-jsx", // or "react" for older versions of React
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false,
+       "jsx": "react-jsx", // or "react" for older versions of React
     "moduleResolution": "node",
     "module": "esnext",
     "target": "esnext",
-    "strict": true,
-    "esModuleInterop": true
   }
-}
-
 }
