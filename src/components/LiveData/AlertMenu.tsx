@@ -86,11 +86,12 @@ const AlertMenu: React.FC<AlertMenuProps> = ({
         totalCurrent
       };
 
-      // Only add state-update-log alert if it doesn't already exist for the same machineId
+      // Only add state-update-log alert if the state has actually changed (from "off" to "on")
       const existingStateAlert = generatedAlerts.find(
         (alert) => alert.machineId === machine.machineId && alert.type === 'state-update-log'
       );
-      if (!existingStateAlert) {
+
+      if (!existingStateAlert && currentState !== 'off') {  // Prevent alert if the state is still "off"
         newAlerts.push({
           machineId: machineId,
           timestamp: new Date().toISOString(),
