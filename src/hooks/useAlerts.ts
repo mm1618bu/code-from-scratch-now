@@ -5,6 +5,29 @@ import { LiveDataItem } from '@/types/liveData';
 import { MachineDowntimeNotification } from '@/lib/notification';
 import { useToast } from '@/hooks/use-toast';
 
+// Extend AlertItem to support previousState and newState for state-change alerts
+export interface AlertItem {
+  machineId: string;
+  value?: number;
+  timestamp: string;
+  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change' | 'state-update-log';
+  downtimeDuration?: number;
+  offTimestamp?: string;
+  onTimestamp?: string;
+  isStatusUpdate?: boolean;
+  stateValues?: {
+    ct1: number;
+    ct2: number;
+    ct3: number;
+    ctAvg: number;
+    totalCurrent: number;
+  };
+  
+  // Add previousState and newState specifically for 'state-change' alerts
+  previousState?: string;
+  newState?: string;
+}
+
 export const useAlerts = () => {
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
