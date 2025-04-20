@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect } from 'react';
 import { useAlerts } from '@/hooks/useAlerts';
 import { useDataFetching } from '@/hooks/useDataFetching';
@@ -14,8 +15,6 @@ export const useLiveData = () => {
     currentAlerts,
     clearAlerts,
     checkForAlerts,
-    processAlert,
-    addStateChangeAlert,
     addDowntimeAlert
   } = useAlerts();
 
@@ -51,12 +50,15 @@ export const useLiveData = () => {
 
   const handleNewAlert = useCallback((data: LiveDataItem) => {
     console.log('New alert data received:', data);
-    processAlert(data);
+    
+    // Instead of using processAlert which was removed,
+    // We'll use checkForAlerts which processes both machine-on and high-current alerts
+    checkForAlerts([data]);
     
     if (data.state) {
       console.log(`Machine ${data.machineId} state is ${data.state}`);
     }
-  }, [processAlert]);
+  }, [checkForAlerts]);
 
   const handleDowntimeAlert = useCallback((downtimeInfo: MachineDowntimeNotification) => {
     console.log('Handling downtime alert:', downtimeInfo);
