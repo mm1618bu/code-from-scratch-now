@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { AlertItem } from '@/components/LiveData/AlertMenu';
 import { notifyTotalCurrentThresholdAlert } from '@/lib/notification';
@@ -5,12 +6,11 @@ import { LiveDataItem } from '@/types/liveData';
 import { MachineDowntimeNotification } from '@/lib/notification';
 import { useToast } from '@/hooks/use-toast';
 
-// Extend AlertDetails to support previousState and newState for state-change alerts
 export interface AlertDetails {
   machineId: string;
   value?: number;
   timestamp: string;
-  type: 'high-current' | 'downtime' | 'offline-status' | 'state-change' | 'state-update-log';
+  type: 'high-current' | 'downtime' | 'offline-status' | 'machine-on';
   downtimeDuration?: number;
   offTimestamp?: string;
   onTimestamp?: string;
@@ -22,17 +22,13 @@ export interface AlertDetails {
     ctAvg: number;
     totalCurrent: number;
   };
-  
-  // Add previousState and newState specifically for 'state-change' alerts
-  previousState?: string;
-  newState?: string;
 }
 
 const formatTimestamp = (timestamp: string) => {
   try {
     return new Date(timestamp).toLocaleString();
   } catch {
-    return new Date().toLocaleString(); // Fallback to current time
+    return new Date().toLocaleString();
   }
 };
 
@@ -55,82 +51,56 @@ export const useAlerts = () => {
 
   const checkForAlerts = (data: LiveDataItem[]) => {
     data.forEach((item) => {
-      if (item.total_current >= 15.0) {
-        processAlert(item);
+      if (item.total_current >= 1.0) {
+        processMachineOnAlert(item);
       }
-
-      if (item.previous_state && item.state && item.previous_state !== item.state) {
-        addStateChangeAlert(item.machineId, item.previous_state, item.state, item.created_at);
+      if (item.total_current >= 15.0) {
+        processHighCurrentAlert(item);
       }
     });
   };
 
-  const processAlert = (newData: LiveDataItem) => {
-    console.log('Processing alert for:', newData.machineId, {
-      state: newData.state,
-      totalCurrent: newData.total_current
+  const processMachineOnAlert = (newData: LiveDataItem) => {
+    console.log(`Machine ON detected for ${newData.machineId}: ${newData.total_current}A`);
+    const newAlert = {
+      machineId: newData.machineId,
+      value: newData.total_current,
+      timestamp: formatTimestamp(newData.created_at),
+      type: 'machine-on' as const
+    };
+    
+    setCurrentAlerts(prev => {
+      const key = `machine-on-${newAlert.machineId}`;
+      const filtered = prev.filter(a => !(a.type === 'machine-on' && a.machineId === newAlert.machineId));
+      return [...filtered, newAlert];
     });
     
-    if (newData.total_current >= 15.0) {
-      console.log(`High current detected for ${newData.machineId}: ${newData.total_current}A`);
-      const newAlert = {
-        machineId: newData.machineId,
-        value: newData.total_current,
-        timestamp: formatTimestamp(newData.created_at),
-        type: 'high-current' as const
-      };
-      
-      setCurrentAlerts(prev => {
-        const key = `high-current-${newAlert.machineId}`;
-        const filtered = prev.filter(a => !(a.type === 'high-current' && a.machineId === newAlert.machineId));
-        const updatedAlerts = [...filtered, newAlert];
-        console.log('Updated high current alerts:', updatedAlerts.length);
-        return updatedAlerts;
-      });
-      
-      setAlertCount(prev => prev + 1);
-      setShowAlerts(true);
-      
-      notifyTotalCurrentThresholdAlert({
-        machineId: newData.machineId,
-        totalCurrent: newData.total_current,
-        timestamp: new Date(newData.created_at).toISOString()
-      });
-    }
+    setAlertCount(prev => prev + 1);
+    setShowAlerts(true);
   };
 
-  const addStateChangeAlert = (machineId: string, previousState: string, newState: string, timestamp: string) => {
-    if (newState === "off" || previousState === newState) {
-      console.log(`Skipping state change alert for ${machineId}: newState is "off" or no state change detected`);
-      return;
-    }
-
-    const newAlert: AlertDetails = {
-      machineId,
-      previousState,
-      newState,
-      timestamp: formatTimestamp(timestamp),
-      type: 'state-change' as const,
+  const processHighCurrentAlert = (newData: LiveDataItem) => {
+    console.log(`High current detected for ${newData.machineId}: ${newData.total_current}A`);
+    const newAlert = {
+      machineId: newData.machineId,
+      value: newData.total_current,
+      timestamp: formatTimestamp(newData.created_at),
+      type: 'high-current' as const
     };
-
-    setCurrentAlerts((prev) => {
-      const exists = prev.some(
-        (a) =>
-          a.type === 'state-change' &&
-          a.machineId === newAlert.machineId &&
-          a.previousState === newAlert.previousState &&
-          a.newState === newAlert.newState
-      );
-
-      if (exists) {
-        return prev;
-      }
-
-      return [...prev, newAlert];
+    
+    setCurrentAlerts(prev => {
+      const filtered = prev.filter(a => !(a.type === 'high-current' && a.machineId === newAlert.machineId));
+      return [...filtered, newAlert];
     });
-
-    setAlertCount((prev) => prev + 1);
+    
+    setAlertCount(prev => prev + 1);
     setShowAlerts(true);
+    
+    notifyTotalCurrentThresholdAlert({
+      machineId: newData.machineId,
+      totalCurrent: newData.total_current,
+      timestamp: new Date(newData.created_at).toISOString()
+    });
   };
 
   const addDowntimeAlert = (downtimeInfo: MachineDowntimeNotification) => {
@@ -154,9 +124,7 @@ export const useAlerts = () => {
         const filtered = prev.filter(a => 
           !(a.type === 'offline-status' && a.machineId === newAlert.machineId)
         );
-        const updatedAlerts = [...filtered, newAlert];
-        console.log('Updated offline status alerts:', updatedAlerts.length);
-        return updatedAlerts;
+        return [...filtered, newAlert];
       } else {
         const exists = prev.some(a => 
           a.type === 'downtime' && 
@@ -169,9 +137,7 @@ export const useAlerts = () => {
           return prev;
         }
         
-        const updatedAlerts = [...prev, newAlert];
-        console.log('Updated downtime alerts:', updatedAlerts.length);
-        return updatedAlerts;
+        return [...prev, newAlert];
       }
     });
     
@@ -196,8 +162,6 @@ export const useAlerts = () => {
     currentAlerts,
     clearAlerts,
     checkForAlerts,
-    processAlert,
-    addStateChangeAlert,
     addDowntimeAlert
   };
 };
